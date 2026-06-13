@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeQuery</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Login Screen --- */
+
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 16px;
+            padding: 40px 32px;
+            width: 360px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .login-box h1 {
+            font-size: 24px;
+            color: #2563eb;
+            margin-bottom: 8px;
+        }
+
+        .login-box p {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 24px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            margin-bottom: 12px;
+        }
+
+        .login-box input:focus {
+            border-color: #2563eb;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+
+        .login-box button:hover {
+            background: #1d4ed8;
+        }
+
+        .login-box button:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        .login-error {
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 12px;
+            min-height: 20px;
+        }
+
+        /* --- Main UI --- */
+
+        header {
+            background: #2563eb;
+            color: white;
+            padding: 16px 20px;
+            font-size: 18px;
+            font-weight: 600;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-user {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .project-select {
+            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .project-select option { color: #1a1a1a; background: white; }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            line-height: 1.6;
+            font-size: 15px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: #2563eb;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: white;
+            color: #1a1a1a;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .message.error {
+            align-self: center;
+            background: #fee2e2;
+            color: #991b1b;
+            font-size: 13px;
+        }
+
+        .typing {
+            align-self: flex-start;
+            background: white;
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background: #93c5fd;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        .typing-text {
+            color: #999;
+            font-size: 13px;
+        }
+
+        .input-area {
+            flex-shrink: 0;
+            padding: 12px 16px;
+            background: white;
+            border-top: 1px solid #e5e5e5;
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-area textarea {
+            flex: 1;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            max-height: 120px;
+        }
+
+        .input-area textarea:focus {
+            border-color: #2563eb;
+        }
+
+        .input-area button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0 20px;
+            font-size: 15px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .input-area button:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        .welcome {
+            text-align: center;
+            color: #888;
+            margin: auto;
+            padding: 40px 20px;
+        }
+
+        .welcome h2 { font-size: 20px; margin-bottom: 8px; color: #555; }
+        .welcome p { font-size: 14px; line-height: 1.8; }
+
+        .no-project {
+            text-align: center;
+            color: #888;
+            margin: auto;
+            padding: 40px 20px;
+        }
+
+        .main-ui { display: none; flex-direction: column; height: 100dvh; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Screen -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h1>CodeQuery</h1>
+            <p>請登入以查詢專案資訊</p>
+            <input type="text" id="loginUser" placeholder="帳號" autocomplete="username"
+                   onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+            <input type="password" id="loginPass" placeholder="密碼" autocomplete="current-password"
+                   onkeydown="if(event.key==='Enter')doLogin()">
+            <button id="loginBtn" onclick="doLogin()">登入</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+    </div>
+
+    <!-- Main UI (hidden until login) -->
+    <div class="main-ui" id="mainUI">
+        <header>
+            <div class="header-left">
+                <span>CodeQuery</span>
+                <select class="project-select" id="projectSelect" onchange="onProjectChange()">
+                    <option value="">-- 選擇專案 --</option>
+                </select>
+                <select class="project-select" id="subfolderSelect" onchange="onSubfolderChange()" style="display:none;">
+                    <option value="">全部</option>
+                </select>
+            </div>
+            <div class="header-right">
+                <span class="header-user" id="headerUser"></span>
+                <button class="btn-logout" onclick="doLogout()">登出</button>
+            </div>
+        </header>
+
+        <div class="chat-area" id="chatArea">
+            <div class="no-project" id="noProject">
+                <h2>請先選擇專案</h2>
+                <p>從上方下拉選單選擇要查詢的專案</p>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <textarea id="input" rows="1" placeholder="輸入你的問題..."
+                      onkeydown="handleKey(event)" disabled></textarea>
+            <button id="sendBtn" onclick="send()" disabled>送出</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = location.hostname === "localhost" || location.hostname === "127.0.0.1"
+            ? "http://localhost:5001"
+            : `http://${location.hostname}:5001`;
+        const chatArea = document.getElementById("chatArea");
+        const input = document.getElementById("input");
+        const sendBtn = document.getElementById("sendBtn");
+        const projectSelect = document.getElementById("projectSelect");
+        const subfolderSelect = document.getElementById("subfolderSelect");
+        const SESSION_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        let isLoading = false;
+        let currentProject = null;
+        let currentSubfolder = "";
+
+        // --- Auth ---
+
+        function getToken() {
+            return sessionStorage.getItem("cq_token");
+        }
+
+        function getUsername() {
+            return sessionStorage.getItem("cq_username");
+        }
+
+        async function authFetch(url, options = {}) {
+            const token = getToken();
+            if (!token) {
+                showLogin();
+                throw new Error("未登入");
+            }
+            const headers = { ...(options.headers || {}), "Authorization": `Bearer ${token}` };
+            if (options.body && !headers["Content-Type"]) {
+                headers["Content-Type"] = "application/json";
+            }
+            const res = await fetch(url, { ...options, headers });
+            if (res.status === 401) {
+                sessionStorage.removeItem("cq_token");
+                sessionStorage.removeItem("cq_username");
+                showLogin();
+                throw new Error("登入已過期");
+            }
+            return res;
+        }
+
+        function showLogin() {
+            document.getElementById("loginOverlay").style.display = "flex";
+            document.getElementById("mainUI").style.display = "none";
+            document.getElementById("loginUser").value = "";
+            document.getElementById("loginPass").value = "";
+            document.getElementById("loginError").textContent = "";
+            document.getElementById("loginUser").focus();
+        }
+
+        function showMain() {
+            document.getElementById("loginOverlay").style.display = "none";
+            document.getElementById("mainUI").style.display = "flex";
+            document.getElementById("headerUser").textContent = getUsername();
+            loadProjects();
+        }
+
+        async function doLogin() {
+            const username = document.getElementById("loginUser").value.trim();
+            const password = document.getElementById("loginPass").value;
+            const errorEl = document.getElementById("loginError");
+            const btn = document.getElementById("loginBtn");
+
+            if (!username || !password) {
+                errorEl.textContent = "請輸入帳號和密碼";
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "登入中...";
+            errorEl.textContent = "";
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorEl.textContent = data.error || "登入失敗";
+                    return;
+                }
+
+                sessionStorage.setItem("cq_token", data.token);
+                sessionStorage.setItem("cq_username", data.username);
+                showMain();
+            } catch {
+                errorEl.textContent = "無法連線到伺服器";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "登入";
+            }
+        }
+
+        function doLogout() {
+            sessionStorage.removeItem("cq_token");
+            sessionStorage.removeItem("cq_username");
+            showLogin();
+        }
+
+        // --- Projects ---
+
+        async function loadProjects() {
+            try {
+                const res = await authFetch(`${API_URL}/api/projects`);
+                const projects = await res.json();
+                projectSelect.innerHTML = '<option value="">-- 選擇專案 --</option>';
+                projects.forEach(p => {
+                    const opt = document.createElement("option");
+                    opt.value = `${p.developer}/${p.name}`;
+                    opt.textContent = p.display_name;
+                    projectSelect.appendChild(opt);
+                });
+                if (projects.length === 1) {
+                    projectSelect.value = `${projects[0].developer}/${projects[0].name}`;
+                    onProjectChange();
+                }
+            } catch {
+                projectSelect.innerHTML = '<option value="">無法載入專案</option>';
+            }
+        }
+
+        async function onProjectChange() {
+            const val = projectSelect.value;
+            if (!val) {
+                currentProject = null;
+                currentSubfolder = "";
+                subfolderSelect.style.display = "none";
+                input.disabled = true;
+                sendBtn.disabled = true;
+                chatArea.innerHTML = '<div class="no-project"><h2>請先選擇專案</h2><p>從上方下拉選單選擇要查詢的專案</p></div>';
+                return;
+            }
+            const [developer, name] = val.split("/");
+            currentProject = { developer, name };
+            currentSubfolder = "";
+            input.disabled = false;
+            sendBtn.disabled = false;
+
+            try {
+                const res = await authFetch(`${API_URL}/api/projects/${developer}/${name}/subfolders`);
+                const folders = await res.json();
+                if (folders.length > 0) {
+                    subfolderSelect.innerHTML = '<option value="">全部</option>';
+                    folders.forEach(f => {
+                        const opt = document.createElement("option");
+                        opt.value = f;
+                        opt.textContent = f;
+                        subfolderSelect.appendChild(opt);
+                    });
+                    subfolderSelect.style.display = "";
+                } else {
+                    subfolderSelect.style.display = "none";
+                }
+            } catch {
+                subfolderSelect.style.display = "none";
+            }
+            chatArea.innerHTML = `
+                <div class="welcome">
+                    <h2>你好，有什麼想了解的？</h2>
+                    <p>你可以用自然語言詢問程式相關的問題，例如：<br>
+                    「登入功能做到什麼程度？」<br>
+                    「有哪些畫面？」<br>
+                    「最近改了什麼？」</p>
+                </div>`;
+            input.focus();
+        }
+
+        function onSubfolderChange() {
+            currentSubfolder = subfolderSelect.value;
+        }
+
+        // --- Chat ---
+
+        function addMessage(text, role) {
+            const welcome = chatArea.querySelector(".welcome");
+            if (welcome) welcome.remove();
+
+            const div = document.createElement("div");
+            div.className = `message ${role}`;
+            div.textContent = text;
+            chatArea.appendChild(div);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            return div;
+        }
+
+        const TYPING_MSGS = [
+            "正在搜尋程式碼...",
+            "正在閱讀相關檔案...",
+            "正在整理答案..."
+        ];
+
+        function showTyping() {
+            const div = document.createElement("div");
+            div.className = "typing";
+            div.id = "typing";
+            div.innerHTML = `
+                <div class="typing-dots"><span></span><span></span><span></span></div>
+                <div class="typing-text">正在搜尋程式碼...</div>
+            `;
+            chatArea.appendChild(div);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            let i = 0;
+            window._typingInterval = setInterval(() => {
+                i = (i + 1) % TYPING_MSGS.length;
+                const txt = div.querySelector(".typing-text");
+                if (txt) txt.textContent = TYPING_MSGS[i];
+            }, 3000);
+        }
+
+        function hideTyping() {
+            clearInterval(window._typingInterval);
+            const el = document.getElementById("typing");
+            if (el) el.remove();
+        }
+
+        async function send() {
+            const question = input.value.trim();
+            if (!question || isLoading || !currentProject) return;
+
+            isLoading = true;
+            sendBtn.disabled = true;
+            input.value = "";
+            input.style.height = "auto";
+
+            addMessage(question, "user");
+            showTyping();
+
+            try {
+                const res = await authFetch(`${API_URL}/api/query`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        question,
+                        session_id: SESSION_ID,
+                        developer: currentProject.developer,
+                        name: currentProject.name,
+                        subfolder: currentSubfolder || undefined,
+                    })
+                });
+                const data = await res.json();
+                hideTyping();
+
+                if (res.status === 429) {
+                    addMessage(data.error || "查詢太頻繁，請稍後再試", "error");
+                } else if (data.error) {
+                    addMessage(data.error, "error");
+                } else {
+                    addMessage(data.answer, "assistant");
+                }
+            } catch (e) {
+                hideTyping();
+                if (e.message === "登入已過期" || e.message === "未登入") return;
+                addMessage("無法連線到伺服器，請確認後端是否啟動。", "error");
+            }
+
+            isLoading = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+
+        function handleKey(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+            }
+        }
+
+        input.addEventListener("input", () => {
+            input.style.height = "auto";
+            input.style.height = Math.min(input.scrollHeight, 120) + "px";
+        });
+
+        // --- Init ---
+
+        if (getToken()) {
+            showMain();
+        } else {
+            showLogin();
+        }
+    </script>
+</body>
+</html>

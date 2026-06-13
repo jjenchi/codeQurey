@@ -1,0 +1,10 @@
+repos/
+projects.json
+users.json
+admin-logs.json
+admin-logs-archive.json
+*.pem
+.env
+backend/.env
+node_modules/
+.DS_Store

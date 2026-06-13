@@ -1,0 +1,96 @@
+# CodeQuery — Cursor AI 專案指引
+
+## 這是什麼專案
+
+CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 GitHub repo 程式碼資訊的 Web App。使用者在網頁上用中文提問，系統透過 Cursor SDK Agent 搜尋程式碼並用非技術語言回答。
+
+## 技術架構
+
+- **後端**：Node.js + Express（`backend/server.mjs`）
+- **前端**：純 HTML（`frontend/index.html` 查詢頁 + `frontend/admin.html` 管理頁）
+- **AI 引擎**：Cursor SDK，model 為 `claude-opus-4-7`
+- **部署環境**：AWS EC2（Amazon Linux 2023），用 PM2 管理程序
+- **SSH 金鑰**：`codequery-key.pem`（放在專案根目錄）
+
+## 重要文件
+
+修改程式碼前，先讀這三份文件：
+
+1. `架構設計.md` — 系統架構、版本演進、設計決策
+2. `管理頁面設計.md` — 角色權限、API 端點、帳號管理規則
+3. `部署清單.md` — 完整部署步驟、AI Model 設定、月費估算
+
+## EC2 部署資訊
+
+- **IP**：`35.78.107.255`
+- **SSH 使用者**：`ec2-user`
+- **SSH 金鑰**：`codequery-key.pem`（在專案根目錄）
+- **遠端程式碼位置**：`~/codequery/`
+- **程序管理**：PM2，程序名稱 `codequery`
+
+### SSH 連線指令
+
+```bash
+ssh -i codequery-key.pem ec2-user@35.78.107.255
+```
+
+### 部署程式碼到 EC2
+
+上傳檔案（從本地執行，不是在 EC2 上）：
+
+```bash
+# 上傳後端
+scp -i codequery-key.pem backend/server.mjs ec2-user@35.78.107.255:~/codequery/backend/
+
+# 上傳前端
+scp -i codequery-key.pem frontend/index.html frontend/admin.html ec2-user@35.78.107.255:~/codequery/frontend/
+
+# 重啟
+ssh -i codequery-key.pem ec2-user@35.78.107.255 "pm2 restart codequery"
+```
+
+### 查看 EC2 log
+
+```bash
+ssh -i codequery-key.pem ec2-user@35.78.107.255 "pm2 logs codequery --lines 50 --nostream"
+```
+
+## 檔案說明
+
+| 檔案 | 用途 | 可否修改 |
+|------|------|---------|
+| `backend/server.mjs` | 所有後端邏輯（API、安全機制、Cursor SDK 整合） | 主要修改對象 |
+| `backend/init-admin.mjs` | 初始化管理員帳號的腳本 | 通常不需改 |
+| `backend/.env` | 環境變數（API Key、JWT Secret、SMTP） | 不在 repo 裡，需手動建立 |
+| `backend/package.json` | npm 依賴 | 加新套件時修改 |
+| `frontend/index.html` | 查詢頁面（含登入畫面） | 改 UI 時修改 |
+| `frontend/admin.html` | 管理頁面（專案/帳號/紀錄） | 改管理 UI 時修改 |
+
+## .env 格式
+
+```
+CURSOR_API_KEY=你的_Cursor_API_Key
+PORT=5001
+JWT_SECRET=隨機長字串
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+```
+
+## 安全機制
+
+1. **登入驗證**：查詢頁和管理頁都需 JWT 登入
+2. **三層角色**：admin（全部權限）、editor（管理專案）、viewer（僅查詢）
+3. **Rate Limiting**：每使用者每分鐘最多 10 次查詢
+4. **程式碼防護**：第一層 Regex 攔截 + 第二層 AI 分類器（composer-2.5）攔截
+5. **子資料夾隔離**：選擇子資料夾後，Agent 限制只搜尋該資料夾
+
+## 不要做的事
+
+- 不要把 `.env`、`*.pem`、`users.json`、`projects.json` 加入 git
+- 不要在前端暴露 Cursor API Key 或 GitHub Token
+- 不要移除 `sanitizeAnswer()` 函式中的程式碼過濾邏輯
+- 不要移除 `classifyQuery()` AI 安全分類器
+- 不要把 `/api/query` 的 `requireAuth` 拿掉

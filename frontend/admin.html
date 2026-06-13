@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeQuery — 管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #1a1a1a;
+        }
+        header {
+            background: #2563eb;
+            color: white;
+            padding: 16px 20px;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header .user-info { font-size: 14px; font-weight: 400; }
+        header .user-info button {
+            margin-left: 12px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+        .tabs button {
+            padding: 8px 16px;
+            border: none;
+            background: #e5e7eb;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .tabs button.active { background: white; font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card h3 { font-size: 16px; margin-bottom: 4px; }
+        .card .meta { color: #666; font-size: 13px; margin-bottom: 10px; }
+        .card .actions { display: flex; gap: 8px; }
+        .card .actions button {
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .card .actions button:hover { background: #f3f4f6; }
+        .card .actions .delete-btn { color: #dc2626; border-color: #fca5a5; }
+        .card .actions .delete-btn:hover { background: #fef2f2; }
+
+        .add-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+        .add-btn:hover { background: #1d4ed8; }
+
+        .empty { text-align: center; color: #888; padding: 32px 20px; }
+
+        /* Log table */
+        .log-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+        .log-table th, .log-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        .log-table th { font-weight: 600; color: #555; }
+
+        /* Login */
+        .login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f5f5f5;
+        }
+        .login-box {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .login-box h2 { font-size: 20px; margin-bottom: 4px; }
+        .login-box .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
+        .login-box label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; margin-top: 14px; }
+        .login-box label:first-of-type { margin-top: 0; }
+        .login-box input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+        .login-box input:focus { border-color: #2563eb; }
+        .login-box .primary-btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .login-box .primary-btn:hover { background: #1d4ed8; }
+        .login-box .primary-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+        .login-box .link-btn {
+            display: block;
+            margin-top: 12px;
+            text-align: center;
+            color: #2563eb;
+            font-size: 13px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .login-box .error-msg { color: #dc2626; font-size: 13px; margin-top: 8px; }
+        .login-box .success-msg { color: #16a34a; font-size: 13px; margin-top: 8px; }
+        .login-box .back-btn {
+            display: block;
+            margin-top: 12px;
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Modal */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay.show { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+        }
+        .modal h2 { font-size: 18px; margin-bottom: 16px; }
+        .modal label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; margin-top: 12px; }
+        .modal label:first-of-type { margin-top: 0; }
+        .modal input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+        .modal input:focus { border-color: #2563eb; }
+        .modal .btn-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+        .modal .btn-row button { padding: 8px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+        .modal .cancel-btn { background: white; border: 1px solid #d1d5db; }
+        .modal .save-btn { background: #2563eb; color: white; border: none; }
+        .modal .save-btn:hover { background: #1d4ed8; }
+        .modal .save-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a1a;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 200;
+            display: none;
+        }
+        .toast.show { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- ===== 登入畫面 ===== -->
+<div id="loginPage" class="login-page">
+    <div class="login-box" id="loginBox">
+        <!-- 登入 -->
+        <div id="loginForm">
+            <h2>CodeQuery 管理</h2>
+            <div class="subtitle">請登入管理員帳號</div>
+            <label>帳號</label>
+            <input id="loginUser" placeholder="帳號">
+            <label>密碼</label>
+            <input id="loginPass" type="password" placeholder="密碼"
+                   onkeydown="if(event.key==='Enter')doLogin()">
+            <div class="error-msg" id="loginError"></div>
+            <button class="primary-btn" onclick="doLogin()">登入</button>
+            <button class="link-btn" onclick="showForgot()">忘記密碼</button>
+        </div>
+
+        <!-- 忘記密碼 - Step 1 -->
+        <div id="forgotForm" style="display:none">
+            <h2>忘記密碼</h2>
+            <div class="subtitle">輸入您的帳號，驗證碼將寄到綁定的 Email</div>
+            <label>帳號</label>
+            <input id="forgotUser" placeholder="帳號">
+            <div class="error-msg" id="forgotError"></div>
+            <button class="primary-btn" onclick="sendCode()">送出驗證碼</button>
+            <button class="back-btn" onclick="showLogin()">← 返回登入</button>
+        </div>
+
+        <!-- 忘記密碼 - Step 2 -->
+        <div id="resetForm" style="display:none">
+            <h2>重設密碼</h2>
+            <div class="subtitle">請輸入收到的驗證碼和新密碼</div>
+            <label>驗證碼</label>
+            <input id="resetCode" placeholder="6 位數驗證碼">
+            <label>新密碼</label>
+            <input id="resetPass" type="password" placeholder="新密碼">
+            <div class="error-msg" id="resetError"></div>
+            <div class="success-msg" id="resetSuccess"></div>
+            <button class="primary-btn" onclick="doReset()">重設密碼</button>
+            <button class="back-btn" onclick="showLogin()">← 返回登入</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 管理主頁 ===== -->
+<div id="mainPage" style="display:none">
+    <header>
+        <span>CodeQuery — 管理</span>
+        <div class="user-info">
+            <span id="currentUser"></span>
+            <button onclick="logout()">登出</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs" id="tabBar">
+            <button class="active" onclick="switchTab('projects',this)">專案管理</button>
+            <button id="usersTab" onclick="switchTab('users',this)" style="display:none">帳號管理</button>
+            <button onclick="switchTab('logs',this)">操作紀錄</button>
+        </div>
+
+        <!-- 專案管理 -->
+        <div class="tab-content active" id="tab-projects">
+            <button class="add-btn" onclick="openProjectModal()">+ 新增專案</button>
+            <div id="projectList"></div>
+        </div>
+
+        <!-- 帳號管理 -->
+        <div class="tab-content" id="tab-users">
+            <button class="add-btn" onclick="openUserModal()">+ 新增帳號</button>
+            <div id="userList"></div>
+        </div>
+
+        <!-- 操作紀錄 -->
+        <div class="tab-content" id="tab-logs">
+            <button class="add-btn" id="clearLogsBtn" style="display:none;background:#dc2626" onclick="clearLogs()">清除操作紀錄</button>
+            <div class="card" style="overflow-x:auto">
+                <table class="log-table">
+                    <thead><tr><th>時間</th><th>使用者</th><th>操作</th><th>詳情</th></tr></thead>
+                    <tbody id="logBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 專案 Modal ===== -->
+<div class="overlay" id="projectOverlay">
+    <div class="modal">
+        <h2 id="projectModalTitle">新增專案</h2>
+        <label>開發者名稱</label>
+        <input id="pf_developer" placeholder="例：jjenchi">
+        <label>專案名稱</label>
+        <input id="pf_name" placeholder="例：CNC">
+        <label>顯示名稱</label>
+        <input id="pf_display_name" placeholder="例：CNC 控制系統">
+        <label>Git URL</label>
+        <input id="pf_git_url" placeholder="https://github.com/...">
+        <label>Git Token</label>
+        <input id="pf_git_token" placeholder="ghp_...">
+        <div class="btn-row">
+            <button class="cancel-btn" onclick="closeModal('projectOverlay')">取消</button>
+            <button class="save-btn" id="projectSaveBtn" onclick="saveProject()">儲存</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 帳號 Modal ===== -->
+<div class="overlay" id="userOverlay">
+    <div class="modal">
+        <h2>新增帳號</h2>
+        <label>帳號</label>
+        <input id="uf_username" placeholder="帳號" oninput="checkUserForm()">
+        <label>密碼</label>
+        <input id="uf_password" type="password" placeholder="密碼" oninput="checkUserForm()">
+        <label>Email</label>
+        <input id="uf_email" placeholder="用於忘記密碼時寄驗證碼" oninput="checkUserForm()">
+        <label>角色</label>
+        <select id="uf_role" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;background:white;">
+            <option value="viewer">Viewer（僅查詢）</option>
+            <option value="editor">Editor（專案管理）</option>
+            <option value="admin">Admin（專案 + 帳號管理）</option>
+        </select>
+        <div class="btn-row">
+            <button class="cancel-btn" onclick="closeModal('userOverlay')">取消</button>
+            <button class="save-btn" id="userSaveBtn" onclick="saveUser()" disabled>儲存</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "http://localhost:5001"
+    : `http://${location.hostname}:5001`;
+let token = localStorage.getItem("cq_token");
+let currentUsername = localStorage.getItem("cq_user");
+let editProject = null;
+let forgotUsername = "";
+let currentRole = localStorage.getItem("cq_role");
+
+function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+function toast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 2500);
+}
+
+function authHeaders() {
+    return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+}
+
+async function authFetch(url, opts = {}) {
+    opts.headers = authHeaders();
+    const res = await fetch(url, opts);
+    if (res.status === 401) { logout(); throw new Error("登入已過期"); }
+    return res;
+}
+
+// ===== 登入 / 登出 =====
+
+function checkAuth() {
+    if (token) {
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("mainPage").style.display = "block";
+        document.getElementById("currentUser").textContent = currentUsername;
+        if (currentRole === "admin") {
+            document.getElementById("usersTab").style.display = "";
+            document.getElementById("tab-users").style.display = "";
+            document.getElementById("clearLogsBtn").style.display = "";
+            loadUsers();
+        } else {
+            document.getElementById("usersTab").style.display = "none";
+            document.getElementById("tab-users").style.display = "none";
+            document.getElementById("clearLogsBtn").style.display = "none";
+        }
+        loadProjects();
+        loadLogs();
+    }
+}
+
+async function doLogin() {
+    const username = document.getElementById("loginUser").value.trim();
+    const password = document.getElementById("loginPass").value;
+    document.getElementById("loginError").textContent = "";
+
+    if (!username || !password) { document.getElementById("loginError").textContent = "請輸入帳號密碼"; return; }
+
+    try {
+        const res = await fetch(`${API}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (data.error) {
+            document.getElementById("loginError").textContent = data.error;
+        } else {
+            token = data.token;
+            currentUsername = data.username;
+            currentRole = data.role;
+            localStorage.setItem("cq_token", token);
+            localStorage.setItem("cq_user", currentUsername);
+            localStorage.setItem("cq_role", currentRole);
+            checkAuth();
+        }
+    } catch {
+        document.getElementById("loginError").textContent = "無法連線到伺服器";
+    }
+}
+
+function logout() {
+    token = null;
+    currentUsername = null;
+    currentRole = null;
+    localStorage.removeItem("cq_token");
+    localStorage.removeItem("cq_user");
+    localStorage.removeItem("cq_role");
+    document.getElementById("mainPage").style.display = "none";
+    document.getElementById("loginPage").style.display = "flex";
+    showLogin();
+}
+
+// ===== 忘記密碼 =====
+
+function showLogin() {
+    document.getElementById("loginForm").style.display = "block";
+    document.getElementById("forgotForm").style.display = "none";
+    document.getElementById("resetForm").style.display = "none";
+}
+
+function showForgot() {
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("forgotForm").style.display = "block";
+    document.getElementById("resetForm").style.display = "none";
+    document.getElementById("forgotError").textContent = "";
+}
+
+async function sendCode() {
+    const username = document.getElementById("forgotUser").value.trim();
+    if (!username) { document.getElementById("forgotError").textContent = "請輸入帳號"; return; }
+    forgotUsername = username;
+
+    try {
+        await fetch(`${API}/api/auth/forgot`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username }),
+        });
+        document.getElementById("forgotForm").style.display = "none";
+        document.getElementById("resetForm").style.display = "block";
+        document.getElementById("resetError").textContent = "";
+        document.getElementById("resetSuccess").textContent = "";
+    } catch {
+        document.getElementById("forgotError").textContent = "無法連線到伺服器";
+    }
+}
+
+async function doReset() {
+    const code = document.getElementById("resetCode").value.trim();
+    const new_password = document.getElementById("resetPass").value;
+    document.getElementById("resetError").textContent = "";
+    document.getElementById("resetSuccess").textContent = "";
+
+    if (!code || !new_password) { document.getElementById("resetError").textContent = "請填寫所有欄位"; return; }
+
+    try {
+        const res = await fetch(`${API}/api/auth/reset`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: forgotUsername, code, new_password }),
+        });
+        const data = await res.json();
+        if (data.error) {
+            document.getElementById("resetError").textContent = data.error;
+        } else {
+            document.getElementById("resetSuccess").textContent = "密碼已重設，請返回登入";
+        }
+    } catch {
+        document.getElementById("resetError").textContent = "無法連線到伺服器";
+    }
+}
+
+// ===== Tab 切換 =====
+
+function switchTab(name, btn) {
+    document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+    document.querySelectorAll(".tabs button").forEach(el => el.classList.remove("active"));
+    document.getElementById(`tab-${name}`).classList.add("active");
+    btn.classList.add("active");
+    if (name === "logs") loadLogs();
+}
+
+// ===== 專案管理 =====
+
+async function loadProjects() {
+    try {
+        const res = await authFetch(`${API}/api/admin/projects`);
+        const projects = await res.json();
+        const list = document.getElementById("projectList");
+        if (projects.length === 0) {
+            list.innerHTML = '<div class="empty">尚未新增任何專案</div>';
+            return;
+        }
+        list.innerHTML = projects.map(p => `
+            <div class="card">
+                <h3>${esc(p.display_name)}</h3>
+                <div class="meta">${esc(p.developer)} / ${esc(p.name)} — ${esc(p.git_url)}</div>
+                <div class="actions">
+                    <button onclick="openEditProject('${esc(p.developer)}','${esc(p.name)}')">編輯</button>
+                    <button class="delete-btn" onclick="deleteProject('${esc(p.developer)}','${esc(p.name)}')">刪除</button>
+                </div>
+            </div>
+        `).join("");
+    } catch {}
+}
+
+function openProjectModal() {
+    editProject = null;
+    document.getElementById("projectModalTitle").textContent = "新增專案";
+    document.getElementById("pf_developer").value = "";
+    document.getElementById("pf_developer").disabled = false;
+    document.getElementById("pf_name").value = "";
+    document.getElementById("pf_name").disabled = false;
+    document.getElementById("pf_display_name").value = "";
+    document.getElementById("pf_git_url").value = "";
+    document.getElementById("pf_git_token").value = "";
+    document.getElementById("projectOverlay").classList.add("show");
+}
+
+async function openEditProject(developer, name) {
+    const res = await authFetch(`${API}/api/admin/projects/${developer}/${name}`);
+    const p = await res.json();
+    editProject = { developer, name };
+    document.getElementById("projectModalTitle").textContent = "編輯專案";
+    document.getElementById("pf_developer").value = p.developer;
+    document.getElementById("pf_developer").disabled = true;
+    document.getElementById("pf_name").value = p.name;
+    document.getElementById("pf_name").disabled = true;
+    document.getElementById("pf_display_name").value = p.display_name;
+    document.getElementById("pf_git_url").value = p.git_url;
+    document.getElementById("pf_git_token").value = p.git_token;
+    document.getElementById("projectOverlay").classList.add("show");
+}
+
+async function saveProject() {
+    const data = {
+        developer: document.getElementById("pf_developer").value.trim(),
+        name: document.getElementById("pf_name").value.trim(),
+        display_name: document.getElementById("pf_display_name").value.trim(),
+        git_url: document.getElementById("pf_git_url").value.trim(),
+        git_token: document.getElementById("pf_git_token").value.trim(),
+    };
+    if (!data.developer || !data.name || !data.git_url || !data.git_token) {
+        toast("請填寫所有必要欄位"); return;
+    }
+
+    const btn = document.getElementById("projectSaveBtn");
+    btn.disabled = true;
+    btn.textContent = "儲存中...";
+
+    try {
+        let res;
+        if (editProject) {
+            res = await authFetch(`${API}/api/admin/projects/${editProject.developer}/${editProject.name}`, {
+                method: "PUT", body: JSON.stringify(data),
+            });
+        } else {
+            res = await authFetch(`${API}/api/admin/projects`, {
+                method: "POST", body: JSON.stringify(data),
+            });
+        }
+        const result = await res.json();
+        if (result.error) { toast(result.error); }
+        else { toast(editProject ? "已更新" : "已新增"); closeModal("projectOverlay"); loadProjects(); }
+    } catch { toast("儲存失敗"); }
+
+    btn.disabled = false;
+    btn.textContent = "儲存";
+}
+
+async function deleteProject(developer, name) {
+    if (!confirm(`確定要刪除 ${developer}/${name}？`)) return;
+    try {
+        await authFetch(`${API}/api/admin/projects/${developer}/${name}`, { method: "DELETE" });
+        toast("已刪除"); loadProjects();
+    } catch { toast("刪除失敗"); }
+}
+
+// ===== 帳號管理 =====
+
+async function loadUsers() {
+    try {
+        const res = await authFetch(`${API}/api/admin/users`);
+        const users = await res.json();
+        const list = document.getElementById("userList");
+        if (users.length === 0) {
+            list.innerHTML = '<div class="empty">沒有帳號</div>';
+            return;
+        }
+        const adminCount = users.filter(u => u.role === "admin").length;
+        list.innerHTML = users.map(u => {
+            const isSelf = u.username === currentUsername;
+            const isLastAdmin = u.role === "admin" && adminCount <= 1;
+            const canDelete = !isSelf && !isLastAdmin;
+            return `
+            <div class="card">
+                <h3>${esc(u.username)}</h3>
+                <div class="meta">${esc(u.email)} — ${esc(u.role)}</div>
+                <div class="actions">
+                    <button onclick="resetUserPassword('${esc(u.username)}')">重設密碼</button>
+                    ${canDelete ? `<button class="delete-btn" onclick="deleteUser('${esc(u.username)}')">刪除</button>` : ""}
+                </div>
+            </div>`;
+        }).join("");
+    } catch {}
+}
+
+function checkUserForm() {
+    const filled = document.getElementById("uf_username").value.trim()
+        && document.getElementById("uf_password").value
+        && document.getElementById("uf_email").value.trim();
+    document.getElementById("userSaveBtn").disabled = !filled;
+}
+
+function openUserModal() {
+    document.getElementById("uf_username").value = "";
+    document.getElementById("uf_password").value = "";
+    document.getElementById("uf_email").value = "";
+    document.getElementById("uf_role").value = "viewer";
+    document.getElementById("userSaveBtn").disabled = true;
+    document.getElementById("userOverlay").classList.add("show");
+}
+
+async function saveUser() {
+    const data = {
+        username: document.getElementById("uf_username").value.trim(),
+        password: document.getElementById("uf_password").value,
+        email: document.getElementById("uf_email").value.trim(),
+        role: document.getElementById("uf_role").value,
+    };
+    if (!data.username || !data.password || !data.email) { toast("請填寫所有欄位"); return; }
+
+    try {
+        const res = await authFetch(`${API}/api/admin/users`, { method: "POST", body: JSON.stringify(data) });
+        const result = await res.json();
+        if (result.error) { toast(result.error); }
+        else { toast("帳號已新增"); closeModal("userOverlay"); loadUsers(); }
+    } catch { toast("新增失敗"); }
+}
+
+async function resetUserPassword(username) {
+    const pw = prompt(`請輸入 ${username} 的新密碼：`);
+    if (!pw) return;
+    try {
+        const res = await authFetch(`${API}/api/admin/users/${username}/password`, {
+            method: "PUT", body: JSON.stringify({ new_password: pw }),
+        });
+        const result = await res.json();
+        if (result.error) toast(result.error);
+        else toast("密碼已重設");
+    } catch { toast("重設失敗"); }
+}
+
+async function deleteUser(username) {
+    if (!confirm(`確定要刪除帳號 ${username}？`)) return;
+    try {
+        const res = await authFetch(`${API}/api/admin/users/${username}`, { method: "DELETE" });
+        const result = await res.json();
+        if (result.error) toast(result.error);
+        else { toast("帳號已刪除"); loadUsers(); }
+    } catch { toast("刪除失敗"); }
+}
+
+// ===== 操作紀錄 =====
+
+async function loadLogs() {
+    try {
+        const res = await authFetch(`${API}/api/admin/logs`);
+        const logs = await res.json();
+        const body = document.getElementById("logBody");
+        if (logs.length === 0) {
+            body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px">尚無紀錄</td></tr>';
+            return;
+        }
+        body.innerHTML = logs.map(l => {
+            const t = new Date(l.time);
+            const ts = `${t.getMonth()+1}/${t.getDate()} ${t.getHours().toString().padStart(2,"0")}:${t.getMinutes().toString().padStart(2,"0")}`;
+            return `<tr><td>${ts}</td><td>${esc(l.user)}</td><td>${esc(l.action)}</td><td>${esc(l.detail)}</td></tr>`;
+        }).join("");
+    } catch {}
+}
+
+// ===== 清除紀錄 =====
+
+async function clearLogs() {
+    if (!confirm("確定要清除所有操作紀錄？此操作本身會被記錄。")) return;
+    try {
+        await authFetch(`${API}/api/admin/logs`, { method: "DELETE" });
+        toast("操作紀錄已清除");
+        loadLogs();
+    } catch { toast("清除失敗"); }
+}
+
+// ===== Modal =====
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove("show");
+}
+
+// ===== Init =====
+checkAuth();
+</script>
+</body>
+</html>
