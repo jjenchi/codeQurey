@@ -1,4 +1,4 @@
-import { Agent } from "@cursor/sdk";
+import { Agent, Cursor } from "@cursor/sdk";
 import express from "express";
 import cors from "cors";
 import { execSync } from "child_process";
@@ -14,7 +14,42 @@ if (!globalThis.crypto) globalThis.crypto = crypto;
 
 config();
 
-const { CURSOR_API_KEY, PORT = "5001", JWT_SECRET, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+const { CURSOR_API_KEY, PORT = "5001", JWT_SECRET, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, AI_MODEL } = process.env;
+
+// 自動偵測最新 Claude Opus 模型（啟動時執行一次）
+let ACTIVE_MODEL = AI_MODEL || "claude-opus-4-7"; // 預設值，啟動後會被覆蓋
+
+async function detectLatestOpusModel() {
+  try {
+    Cursor.configure({ apiKey: CURSOR_API_KEY });
+    const models = await Cursor.models.list();
+    const opusModels = models
+      .filter(m => m.id.startsWith("claude-opus"))
+      .sort((a, b) => b.id.localeCompare(a.id));
+
+    if (AI_MODEL) {
+      const exists = models.some(m => m.id === AI_MODEL);
+      if (exists) {
+        ACTIVE_MODEL = AI_MODEL;
+        console.log(`[MODEL] 使用 .env 指定模型：${AI_MODEL}`);
+      } else {
+        console.warn(`[MODEL] ⚠️ .env 指定的 ${AI_MODEL} 不在可用清單中`);
+        console.log(`[MODEL] 可用的 Opus 模型：${opusModels.map(m => m.id).join(", ")}`);
+        if (opusModels.length > 0) {
+          ACTIVE_MODEL = opusModels[0].id;
+          console.log(`[MODEL] 自動切換為最新 Opus：${ACTIVE_MODEL}`);
+        }
+      }
+    } else if (opusModels.length > 0) {
+      ACTIVE_MODEL = opusModels[0].id;
+      console.log(`[MODEL] 自動偵測最新 Opus：${ACTIVE_MODEL}`);
+    } else {
+      console.warn("[MODEL] ⚠️ 找不到任何 Claude Opus 模型，使用預設值：" + ACTIVE_MODEL);
+    }
+  } catch (err) {
+    console.warn("[MODEL] ⚠️ 無法查詢模型清單，使用預設值：" + ACTIVE_MODEL, err.message);
+  }
+}
 
 const ROOT_DIR = join(decodeURIComponent(dirname(new URL(import.meta.url).pathname)), "..");
 const PROJECTS_FILE = join(ROOT_DIR, "projects.json");
@@ -311,7 +346,7 @@ app.post("/api/query", requireAuth, async (req, res) => {
       console.log(`[LOG] 建立新的 Cursor Agent... (cwd: ${subfolder || "全部"})`);
       sessions[sessionKey] = await Agent.create({
         apiKey: CURSOR_API_KEY,
-        model: { id: "claude-opus-4-7" },
+        model: { id: ACTIVE_MODEL },
         local: { cwd: agentCwd },
       });
       console.log("[LOG] Agent 建立完成");
@@ -621,13 +656,20 @@ app.use(express.static(FRONTEND_DIR));
 
 // ========== 啟動 ==========
 
-app.listen(Number(PORT), "0.0.0.0", () => {
-  console.log(`\n🚀 CodeQuery v3.0 後端啟動（含登入驗證 + Rate Limit + AI 安全分類器）`);
-  console.log(`   http://localhost:${PORT}`);
-  console.log(`   POST /api/query          — 查詢（需登入，10次/分鐘）`);
-  console.log(`   GET  /api/projects       — 專案列表（需登入）`);
-  console.log(`   POST /api/auth/login     — 登入`);
-  console.log(`   POST /api/auth/forgot    — 忘記密碼`);
-  console.log(`   /api/admin/*             — 管理（需登入）`);
-  console.log(`   GET  /api/health         — 健康檢查\n`);
-});
+async function startServer() {
+  await detectLatestOpusModel();
+
+  app.listen(Number(PORT), "0.0.0.0", () => {
+    console.log(`\n🚀 CodeQuery v3.0 後端啟動（含登入驗證 + Rate Limit + AI 安全分類器）`);
+    console.log(`   AI 模型：${ACTIVE_MODEL}`);
+    console.log(`   http://localhost:${PORT}`);
+    console.log(`   POST /api/query          — 查詢（需登入，10次/分鐘）`);
+    console.log(`   GET  /api/projects       — 專案列表（需登入）`);
+    console.log(`   POST /api/auth/login     — 登入`);
+    console.log(`   POST /api/auth/forgot    — 忘記密碼`);
+    console.log(`   /api/admin/*             — 管理（需登入）`);
+    console.log(`   GET  /api/health         — 健康檢查\n`);
+  });
+}
+
+startServer();
