@@ -398,6 +398,15 @@ app.post("/api/query", requireAuth, async (req, res) => {
     res.json({ answer });
   } catch (err) {
     console.error("[ERROR]", err.message);
+
+    // 模型相關錯誤的友善提示
+    const msg = err.message || "";
+    if (msg.includes("model") || msg.includes("Model") || msg.includes("not found") || msg.includes("not available") || msg.includes("deprecated")) {
+      console.error(`[MODEL ERROR] 目前使用的模型 ${ACTIVE_MODEL} 可能已無法使用。`);
+      console.error("[MODEL ERROR] 建議：重啟 server 讓系統自動偵測最新模型，或在 .env 設定 AI_MODEL 指定可用的模型。");
+      return res.status(500).json({ error: `AI 模型 (${ACTIVE_MODEL}) 發生錯誤，請聯繫管理員檢查模型設定。` });
+    }
+
     res.status(500).json({ error: `查詢失敗：${err.message}` });
   }
 });

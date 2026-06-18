@@ -19,7 +19,7 @@ CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 Gi
 
 - **後端**：Node.js + Express（`backend/server.mjs`）
 - **前端**：純 HTML（`frontend/index.html` 查詢頁 + `frontend/admin.html` 管理頁）
-- **AI 引擎**：Cursor SDK，model 為 `claude-opus-4-7`
+- **AI 引擎**：Cursor SDK，啟動時自動偵測最新 Claude Opus 模型（可用 `.env` 的 `AI_MODEL` 手動覆蓋）
 - **部署環境**：AWS EC2（Amazon Linux 2023），用 PM2 管理程序
 - **SSH 金鑰**：`codequery-key.pem`（放在專案根目錄）
 
