@@ -4,6 +4,17 @@
 
 CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 GitHub repo 程式碼資訊的 Web App。使用者在網頁上用中文提問，系統透過 Cursor SDK Agent 搜尋程式碼並用非技術語言回答。
 
+## 首次設定（還沒部署過的人看這裡）
+
+如果這是你第一次拿到這個專案，需要先完成以下設定：
+
+1. **取得 Cursor API Key**：到 https://cursor.com/settings 取得（需要 Cursor Pro 訂閱）
+2. **建立 `backend/.env`**：複製下方 .env 格式，填入你的 API Key 和 JWT Secret
+3. **建立 EC2 主機**：照 `部署清單.md` 第一、二階段操作
+4. **更新本檔案**：把下方 EC2 部署資訊的 IP 改成你的 EC2 公有 IP
+5. **部署到 EC2**：對我（Cursor AI）說「幫我執行部署清單第三階段」，我會幫你完成
+6. **建立管理員帳號**：對我說「幫我在 EC2 上初始化管理員帳號，帳號是 XXX 密碼是 XXX email 是 XXX」
+
 ## 技術架構
 
 - **後端**：Node.js + Express（`backend/server.mjs`）
@@ -22,7 +33,9 @@ CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 Gi
 
 ## EC2 部署資訊
 
-- **IP**：`35.78.107.255`
+> ⚠️ 以下 IP 請替換成你自己的 EC2 公有 IP
+
+- **IP**：`<你的EC2公有IP>`
 - **SSH 使用者**：`ec2-user`
 - **SSH 金鑰**：`codequery-key.pem`（在專案根目錄）
 - **遠端程式碼位置**：`~/codequery/`
@@ -31,7 +44,7 @@ CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 Gi
 ### SSH 連線指令
 
 ```bash
-ssh -i codequery-key.pem ec2-user@35.78.107.255
+ssh -i codequery-key.pem ec2-user@<你的EC2公有IP>
 ```
 
 ### 部署程式碼到 EC2
@@ -40,19 +53,19 @@ ssh -i codequery-key.pem ec2-user@35.78.107.255
 
 ```bash
 # 上傳後端
-scp -i codequery-key.pem backend/server.mjs ec2-user@35.78.107.255:~/codequery/backend/
+scp -i codequery-key.pem backend/server.mjs ec2-user@<你的EC2公有IP>:~/codequery/backend/
 
 # 上傳前端
-scp -i codequery-key.pem frontend/index.html frontend/admin.html ec2-user@35.78.107.255:~/codequery/frontend/
+scp -i codequery-key.pem frontend/index.html frontend/admin.html ec2-user@<你的EC2公有IP>:~/codequery/frontend/
 
 # 重啟
-ssh -i codequery-key.pem ec2-user@35.78.107.255 "pm2 restart codequery"
+ssh -i codequery-key.pem ec2-user@<你的EC2公有IP> "pm2 restart codequery"
 ```
 
 ### 查看 EC2 log
 
 ```bash
-ssh -i codequery-key.pem ec2-user@35.78.107.255 "pm2 logs codequery --lines 50 --nostream"
+ssh -i codequery-key.pem ec2-user@<你的EC2公有IP> "pm2 logs codequery --lines 50 --nostream"
 ```
 
 ## 檔案說明

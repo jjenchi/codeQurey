@@ -6,30 +6,31 @@
 
 ---
 
-## 給 Jackie 的快速指南
+## 快速開始
 
-### 你拿到這個 repo 之後，要做什麼？
+### 第零步：讓 Cursor AI 帶你
 
-#### 第一步：了解系統
+用 Cursor 打開這個資料夾後，開 AI chat 說：
 
-先讀這三份文件（按順序）：
+> 「我剛 clone 了這個專案，請引導我完成首次設定」
 
-1. **`架構設計.md`** — 系統怎麼運作、為什麼這樣設計
-2. **`管理頁面設計.md`** — 帳號角色（admin/editor/viewer）、權限、操作紀錄
-3. **`部署清單.md`** — 完整的部署步驟（從 AWS 帳號到上線）
+Cursor 會自動讀取 `.cursorrules`，知道整個專案的架構和設定流程，一步步帶你做。
 
-#### 第二步：準備環境設定檔
+以下是完整的手動步驟（你也可以每一步都請 Cursor AI 幫忙）：
 
-這個 repo 裡有些檔案**故意不包含在內**（因為含有密碼和金鑰）。部署前你需要自己建立：
+### 第一步：取得 Cursor API Key
 
-**1. `backend/.env`（後端環境變數）**
+1. 到 https://cursor.com 註冊 **Cursor Pro**（$20/月）
+2. 到 https://cursor.com/settings 找到 API Key，複製下來
 
-在 `backend/` 資料夾下建立 `.env` 檔，內容如下：
+### 第二步：建立環境設定檔
+
+在 `backend/` 資料夾下建立 `.env` 檔：
 
 ```
-CURSOR_API_KEY=你的_Cursor_API_Key
+CURSOR_API_KEY=你剛才複製的_API_Key
 PORT=5001
-JWT_SECRET=隨機長字串_用來簽JWT_token
+JWT_SECRET=自己想一個長字串_例如_my_super_secret_2026
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
@@ -37,63 +38,60 @@ SMTP_PASS=
 SMTP_FROM=
 ```
 
-- `CURSOR_API_KEY`：到 https://cursor.com/settings 取得
-- `JWT_SECRET`：自己想一個長字串，例如 `my_super_secret_key_2026`
-- SMTP 相關：等設定 AWS SES 寄信時再填（忘記密碼功能用的）
+（SMTP 那幾行先空著，等之後設定忘記密碼功能再填）
 
-**2. `codequery-key.pem`（SSH 金鑰）**
+### 第三步：建立 AWS EC2 主機
 
-這是連線到 EC2 主機的金鑰檔。如果是全新部署，會在 AWS 建立 EC2 時自動下載。把它放到專案根目錄。
+照 `部署清單.md` 的第一、二階段操作（申請 AWS 帳號 + 建立 EC2）。
 
-#### 第三步：部署到 EC2
+完成後你會拿到：
+- 一個 **EC2 公有 IP**（例如 `13.xxx.xxx.xxx`）
+- 一個 **codequery-key.pem** 金鑰檔（放到專案根目錄）
 
-完整步驟在 `部署清單.md`，分五個階段：
+### 第四步：更新 .cursorrules 裡的 IP
 
-| 階段 | 內容 | 誰做 |
-|------|------|------|
-| 第一階段 | 申請 AWS 帳號 | 你自己在瀏覽器操作 |
-| 第二階段 | 建立 EC2 主機 | 你自己在 AWS Console 操作 |
-| 第三階段 | 安裝軟體與部署程式 | **可以請 Cursor AI 幫你做**（見下方說明） |
-| 第四階段 | 設定 SMTP 寄信 | 待補充 |
-| 第五階段 | 設定網域 | 選擇性，先用 IP 就好 |
+打開 `.cursorrules`，把所有 `<你的EC2公有IP>` 替換成你的實際 IP。
 
-### 哪些步驟可以請 Cursor AI 幫你做？
+或者直接對 Cursor AI 說：
 
-第三階段的所有步驟，你都可以在 Cursor 裡直接對 AI 說：
+> 「幫我把 .cursorrules 裡的 IP 全部改成 13.xxx.xxx.xxx」
+
+### 第五步：部署程式到 EC2
+
+對 Cursor AI 說：
 
 > 「幫我執行部署清單第三階段」
 
-Cursor AI 會幫你：
-1. 用 SSH 連線到 EC2
-2. 安裝 Node.js、Git、PM2
-3. 上傳程式碼
-4. 安裝 npm 依賴
-5. 初始化管理員帳號
-6. 啟動後端
+它會自動幫你：SSH 連線 → 安裝 Node.js/PM2 → 上傳程式碼 → 安裝依賴 → 啟動後端。
 
-**前提條件**：
-- `codequery-key.pem` 已放在專案根目錄
-- `backend/.env` 已填好
-- 你已經完成第一、二階段（AWS 帳號和 EC2 主機已建好）
-- 你知道 EC2 的公有 IP 位址
+### 第六步：建立管理員帳號
 
-你也可以一步步來，例如：
-- 「幫我 SSH 到 EC2 主機，IP 是 xx.xx.xx.xx」
-- 「幫我在 EC2 上安裝 Node.js 和 PM2」
-- 「幫我把程式碼上傳到 EC2」
-- 「幫我重啟 EC2 上的 PM2」
+對 Cursor AI 說：
 
-### 日常維護（改程式碼之後）
+> 「幫我在 EC2 上初始化管理員帳號，帳號 XXX 密碼 XXX email XXX」
 
-改完程式碼，對 Cursor AI 說：
+### 完成！
 
-> 「幫我把 server.mjs 部署到 EC2 並重啟」
+- 查詢頁面：`http://你的IP:5001/index.html`
+- 管理頁面：`http://你的IP:5001/admin.html`
 
-它會執行：
-```bash
-scp -i codequery-key.pem backend/server.mjs ec2-user@<IP>:~/codequery/backend/
-ssh -i codequery-key.pem ec2-user@<IP> "pm2 restart codequery"
-```
+---
+
+## 日常維護
+
+改完程式碼後，對 Cursor AI 說：
+
+> 「幫我把修改過的檔案部署到 EC2 並重啟」
+
+---
+
+## 設計文件
+
+修改程式碼前，建議先讀：
+
+1. **`架構設計.md`** — 系統怎麼運作、為什麼這樣設計
+2. **`管理頁面設計.md`** — 帳號角色（admin/editor/viewer）、權限、操作紀錄
+3. **`部署清單.md`** — 完整部署步驟、AI Model 設定、月費估算
 
 ---
 
@@ -145,15 +143,3 @@ CodeQuery/
 | 子資料夾隔離 | 選擇子資料夾後，Agent 被限制只搜尋該資料夾 |
 | 密碼加密 | bcrypt hash，不存明碼 |
 | 敏感檔案隔離 | .env、.pem、users.json 等不進 Git |
-
----
-
-## 目前部署狀態
-
-| 項目 | 值 |
-|------|------|
-| EC2 IP | `35.78.107.255` |
-| 查詢頁面 | `http://35.78.107.255:5001/index.html` |
-| 管理頁面 | `http://35.78.107.255:5001/admin.html` |
-| AI Model | `claude-opus-4-7` |
-| 初始管理員 | jjenchi |
