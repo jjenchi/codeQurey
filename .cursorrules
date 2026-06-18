@@ -74,7 +74,7 @@ ssh -i codequery-key.pem ec2-user@<你的EC2公有IP> "pm2 logs codequery --line
 |------|------|---------|
 | `backend/server.mjs` | 所有後端邏輯（API、安全機制、Cursor SDK 整合） | 主要修改對象 |
 | `backend/init-admin.mjs` | 初始化管理員帳號的腳本 | 通常不需改 |
-| `backend/.env` | 環境變數（API Key、JWT Secret、SMTP） | 不在 repo 裡，需手動建立 |
+| `backend/.env` | 環境變數（API Key、JWT Secret） | 不在 repo 裡，需手動建立 |
 | `backend/package.json` | npm 依賴 | 加新套件時修改 |
 | `frontend/index.html` | 查詢頁面（含登入畫面） | 改 UI 時修改 |
 | `frontend/admin.html` | 管理頁面（專案/帳號/紀錄） | 改管理 UI 時修改 |
@@ -85,12 +85,9 @@ ssh -i codequery-key.pem ec2-user@<你的EC2公有IP> "pm2 logs codequery --line
 CURSOR_API_KEY=你的_Cursor_API_Key
 PORT=5001
 JWT_SECRET=隨機長字串
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM=
 ```
+
+> AI_MODEL 是可選欄位，不填則啟動時自動偵測最新 Claude Opus 模型
 
 ## 安全機制
 
