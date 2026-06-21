@@ -148,6 +148,25 @@
             background: rgba(255,255,255,0.25);
         }
 
+        .btn-clear {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-clear:hover:not(:disabled) {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .btn-clear:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         .chat-area {
             flex: 1;
             overflow-y: auto;
@@ -317,6 +336,7 @@
                 </select>
             </div>
             <div class="header-right">
+                <button class="btn-clear" id="clearBtn" onclick="clearChat()" disabled>清除對話</button>
                 <span class="header-user" id="headerUser"></span>
                 <button class="btn-logout" onclick="doLogout()">登出</button>
             </div>
@@ -338,14 +358,15 @@
 
     <script>
         const API_URL = location.hostname === "localhost" || location.hostname === "127.0.0.1"
-            ? "http://localhost:5001"
-            : `http://${location.hostname}:5001`;
+            ? "http://localhost:8090"
+            : `http://${location.hostname}:8090`;
         const chatArea = document.getElementById("chatArea");
         const input = document.getElementById("input");
         const sendBtn = document.getElementById("sendBtn");
         const projectSelect = document.getElementById("projectSelect");
         const subfolderSelect = document.getElementById("subfolderSelect");
-        const SESSION_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const clearBtn = document.getElementById("clearBtn");
+        let sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         let isLoading = false;
         let currentProject = null;
         let currentSubfolder = "";
@@ -469,16 +490,14 @@
                 currentProject = null;
                 currentSubfolder = "";
                 subfolderSelect.style.display = "none";
-                input.disabled = true;
-                sendBtn.disabled = true;
                 chatArea.innerHTML = '<div class="no-project"><h2>請先選擇專案</h2><p>從上方下拉選單選擇要查詢的專案</p></div>';
+                updateInputState();
                 return;
             }
             const [developer, name] = val.split("/");
             currentProject = { developer, name };
             currentSubfolder = "";
-            input.disabled = false;
-            sendBtn.disabled = false;
+            sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
             try {
                 const res = await authFetch(`${API_URL}/api/projects/${developer}/${name}/subfolders`);
@@ -498,14 +517,8 @@
             } catch {
                 subfolderSelect.style.display = "none";
             }
-            chatArea.innerHTML = `
-                <div class="welcome">
-                    <h2>你好，有什麼想了解的？</h2>
-                    <p>你可以用自然語言詢問程式相關的問題，例如：<br>
-                    「登入功能做到什麼程度？」<br>
-                    「有哪些畫面？」<br>
-                    「最近改了什麼？」</p>
-                </div>`;
+            showWelcome();
+            updateInputState();
             input.focus();
         }
 
@@ -514,6 +527,31 @@
         }
 
         // --- Chat ---
+
+        function updateInputState() {
+            const enabled = !!currentProject && !isLoading;
+            input.disabled = !currentProject;
+            sendBtn.disabled = !enabled;
+            clearBtn.disabled = !currentProject || isLoading;
+        }
+
+        function showWelcome() {
+            chatArea.innerHTML = `
+                <div class="welcome">
+                    <h2>你好，有什麼想了解的？</h2>
+                    <p>你可以用自然語言詢問程式相關的問題，例如：<br>
+                    「登入功能做到什麼程度？」<br>
+                    「有哪些畫面？」<br>
+                    「最近改了什麼？」</p>
+                </div>`;
+        }
+
+        function clearChat() {
+            if (isLoading || !currentProject) return;
+            sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            showWelcome();
+            input.focus();
+        }
 
         function addMessage(text, role) {
             const welcome = chatArea.querySelector(".welcome");
@@ -563,7 +601,7 @@
             if (!question || isLoading || !currentProject) return;
 
             isLoading = true;
-            sendBtn.disabled = true;
+            updateInputState();
             input.value = "";
             input.style.height = "auto";
 
@@ -575,7 +613,7 @@
                     method: "POST",
                     body: JSON.stringify({
                         question,
-                        session_id: SESSION_ID,
+                        session_id: sessionId,
                         developer: currentProject.developer,
                         name: currentProject.name,
                         subfolder: currentSubfolder || undefined,
@@ -598,7 +636,7 @@
             }
 
             isLoading = false;
-            sendBtn.disabled = false;
+            updateInputState();
             input.focus();
         }
 

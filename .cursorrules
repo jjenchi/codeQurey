@@ -20,7 +20,7 @@ CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 Gi
 - **後端**：Node.js + Express（`backend/server.mjs`）
 - **前端**：純 HTML（`frontend/index.html` 查詢頁 + `frontend/admin.html` 管理頁）
 - **AI 引擎**：Cursor SDK，啟動時自動偵測最新 Claude Opus 模型（可用 `.env` 的 `AI_MODEL` 手動覆蓋）
-- **部署環境**：AWS EC2（Amazon Linux 2023），用 PM2 管理程序
+- **部署環境**：AWS EC2（Ubuntu），用 PM2 管理程序
 - **SSH 金鑰**：`codequery-key.pem`（放在專案根目錄）
 
 ## 重要文件
@@ -33,10 +33,8 @@ CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 Gi
 
 ## EC2 部署資訊
 
-> ⚠️ 以下 IP 請替換成你自己的 EC2 公有 IP
-
-- **IP**：`<你的EC2公有IP>`
-- **SSH 使用者**：`ec2-user`
+- **IP**：`13.212.232.237`
+- **SSH 使用者**：`ubuntu`
 - **SSH 金鑰**：`codequery-key.pem`（在專案根目錄）
 - **遠端程式碼位置**：`~/codequery/`
 - **程序管理**：PM2，程序名稱 `codequery`
@@ -44,7 +42,7 @@ CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 Gi
 ### SSH 連線指令
 
 ```bash
-ssh -i codequery-key.pem ec2-user@<你的EC2公有IP>
+ssh -i codequery-key.pem ubuntu@13.212.232.237
 ```
 
 ### 部署程式碼到 EC2
@@ -53,19 +51,19 @@ ssh -i codequery-key.pem ec2-user@<你的EC2公有IP>
 
 ```bash
 # 上傳後端
-scp -i codequery-key.pem backend/server.mjs ec2-user@<你的EC2公有IP>:~/codequery/backend/
+scp -i codequery-key.pem backend/server.mjs ubuntu@13.212.232.237:~/codequery/backend/
 
 # 上傳前端
-scp -i codequery-key.pem frontend/index.html frontend/admin.html ec2-user@<你的EC2公有IP>:~/codequery/frontend/
+scp -i codequery-key.pem frontend/index.html frontend/admin.html ubuntu@13.212.232.237:~/codequery/frontend/
 
 # 重啟
-ssh -i codequery-key.pem ec2-user@<你的EC2公有IP> "pm2 restart codequery"
+ssh -i codequery-key.pem ubuntu@13.212.232.237 "pm2 restart codequery"
 ```
 
 ### 查看 EC2 log
 
 ```bash
-ssh -i codequery-key.pem ec2-user@<你的EC2公有IP> "pm2 logs codequery --lines 50 --nostream"
+ssh -i codequery-key.pem ubuntu@13.212.232.237 "pm2 logs codequery --lines 50 --nostream"
 ```
 
 ## 檔案說明
@@ -83,7 +81,7 @@ ssh -i codequery-key.pem ec2-user@<你的EC2公有IP> "pm2 logs codequery --line
 
 ```
 CURSOR_API_KEY=你的_Cursor_API_Key
-PORT=5001
+PORT=8090
 JWT_SECRET=隨機長字串
 ```
 
