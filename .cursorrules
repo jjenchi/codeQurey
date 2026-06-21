@@ -97,6 +97,8 @@ JWT_SECRET=隨機長字串
 
 ## 不要做的事
 
+- **不要 push 到 `charles` remote**（`charlesjr0719dev/codequery` 是 Charles 的 repo，僅供 fetch 參考）
+- 日常 push 只用 `origin`（`jjenchi/codeQurey`）
 - 不要把 `.env`、`*.pem`、`users.json`、`projects.json` 加入 git
 - 不要在前端暴露 Cursor API Key 或 GitHub Token
 - 不要移除 `sanitizeAnswer()` 函式中的程式碼過濾邏輯
