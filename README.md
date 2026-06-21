@@ -67,10 +67,20 @@ JWT_SECRET=自己想一個長字串_例如_my_super_secret_2026
 
 ### 完成！
 
+**正式環境（cnc.kavalan.net）：**
+
+- HTTPS 查詢頁：`https://cnc.kavalan.net/index.html`
+- HTTPS 管理頁：`https://cnc.kavalan.net/admin.html`
+- HTTP 查詢頁（大陸寬頻）：`http://cnc.kavalan.net:8090/index.html`
+
+**直接用 IP（開發/測試）：**
+
 - 查詢頁面：`http://你的IP:8090/index.html`
 - 管理頁面：`http://你的IP:8090/admin.html`
 
 查詢頁右上角有 **「清除對話」** 按鈕，可清空畫面並開始全新對話（下一個提問不會帶入之前的上下文）。
+
+> 大陸使用者：電腦寬頻優先用 `:8090`；手機建議 Chrome/Safari，避免微信內建瀏覽器。詳見 `部署清單.md` 3.10 節。
 
 ---
 
@@ -124,6 +134,10 @@ CodeQuery/
 ├── frontend/
 │   ├── index.html             ← 查詢頁面（含登入畫面）
 │   └── admin.html             ← 管理頁面（專案/帳號/紀錄管理）
+│
+├── deploy/                    ← Nginx 反向代理設定（EC2 用）
+│   ├── codequery.nginx.conf
+│   └── codequery-8090-proxy.conf
 │
 ├── 架構設計.md                ← 系統架構、版本演進、設計決策
 ├── 管理頁面設計.md            ← 角色權限、API 端點、帳號規則

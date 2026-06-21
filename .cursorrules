@@ -20,7 +20,7 @@ CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 Gi
 - **後端**：Node.js + Express（`backend/server.mjs`）
 - **前端**：純 HTML（`frontend/index.html` 查詢頁 + `frontend/admin.html` 管理頁）
 - **AI 引擎**：Cursor SDK，啟動時自動偵測最新 Claude Opus 模型（可用 `.env` 的 `AI_MODEL` 手動覆蓋）
-- **部署環境**：AWS EC2（Ubuntu），用 PM2 管理程序
+- **部署環境**：AWS EC2（Ubuntu）+ Nginx 反向代理 + PM2
 - **SSH 金鑰**：`codequery-key.pem`（放在專案根目錄）
 
 ## 重要文件
@@ -34,10 +34,18 @@ CodeQuery 是一個讓非技術人員（客服/業務）用自然語言查詢 Gi
 ## EC2 部署資訊
 
 - **IP**：`13.212.232.237`
+- **網域**：`cnc.kavalan.net`
 - **SSH 使用者**：`ubuntu`
 - **SSH 金鑰**：`codequery-key.pem`（在專案根目錄）
 - **遠端程式碼位置**：`~/codequery/`
 - **程序管理**：PM2，程序名稱 `codequery`
+- **Nginx**：443（HTTPS）+ 8090（HTTP）→ 後端 `127.0.0.1:8091`
+
+### 存取網址
+
+- HTTPS：`https://cnc.kavalan.net/index.html`（海外 / 台灣）
+- HTTP：`http://cnc.kavalan.net:8090/index.html`（大陸寬頻較穩）
+- 大陸手機 4G/5G 可能不穩，建議用 Chrome/Safari，避免微信內建瀏覽器
 
 ### SSH 連線指令
 
@@ -56,8 +64,8 @@ scp -i codequery-key.pem backend/server.mjs ubuntu@13.212.232.237:~/codequery/ba
 # 上傳前端
 scp -i codequery-key.pem frontend/index.html frontend/admin.html ubuntu@13.212.232.237:~/codequery/frontend/
 
-# 重啟
-ssh -i codequery-key.pem ubuntu@13.212.232.237 "pm2 restart codequery"
+# 重啟（EC2 上 .env 的 PORT=8091，需 --update-env）
+ssh -i codequery-key.pem ubuntu@13.212.232.237 "pm2 restart codequery --update-env"
 ```
 
 ### 查看 EC2 log
@@ -84,6 +92,8 @@ CURSOR_API_KEY=你的_Cursor_API_Key
 PORT=8090
 JWT_SECRET=隨機長字串
 ```
+
+> 本機開發用 `PORT=8090`。EC2 正式環境設 `PORT=8091`（由 Nginx 對外提供 443/8090）。
 
 > AI_MODEL 是可選欄位，不填則啟動時自動偵測最新 Claude Opus 模型
 

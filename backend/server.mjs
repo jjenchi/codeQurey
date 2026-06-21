@@ -668,7 +668,7 @@ app.use(express.static(FRONTEND_DIR));
 async function startServer() {
   await detectLatestOpusModel();
 
-  app.listen(Number(PORT), "0.0.0.0", () => {
+  app.listen(Number(PORT), "127.0.0.1", () => {
     console.log(`\n🚀 CodeQuery v3.0 後端啟動（含登入驗證 + Rate Limit + AI 安全分類器）`);
     console.log(`   AI 模型：${ACTIVE_MODEL}`);
     console.log(`   http://localhost:${PORT}`);

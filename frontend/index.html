@@ -359,7 +359,7 @@
     <script>
         const API_URL = location.hostname === "localhost" || location.hostname === "127.0.0.1"
             ? "http://localhost:8090"
-            : `http://${location.hostname}:8090`;
+            : `${location.protocol}//${location.host}`;
         const chatArea = document.getElementById("chatArea");
         const input = document.getElementById("input");
         const sendBtn = document.getElementById("sendBtn");
