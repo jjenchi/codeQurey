@@ -467,6 +467,10 @@
         async function loadProjects() {
             try {
                 const res = await authFetch(`${API_URL}/api/projects`);
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || `HTTP ${res.status}`);
+                }
                 const projects = await res.json();
                 projectSelect.innerHTML = '<option value="">-- 選擇專案 --</option>';
                 projects.forEach(p => {
@@ -619,11 +623,18 @@
                         subfolder: currentSubfolder || undefined,
                     })
                 });
-                const data = await res.json();
+                let data = {};
+                try {
+                    data = await res.json();
+                } catch {
+                    throw new Error("伺服器回應格式異常，請稍後再試。");
+                }
                 hideTyping();
 
                 if (res.status === 429) {
                     addMessage(data.error || "查詢太頻繁，請稍後再試", "error");
+                } else if (res.status >= 500) {
+                    addMessage(data.error || "伺服器暫時無法處理查詢，請稍後再試。", "error");
                 } else if (data.error) {
                     addMessage(data.error, "error");
                 } else {
@@ -632,7 +643,14 @@
             } catch (e) {
                 hideTyping();
                 if (e.message === "登入已過期" || e.message === "未登入") return;
-                addMessage("無法連線到伺服器，請確認後端是否啟動。", "error");
+                const msg = (e.message || "").toLowerCase();
+                if (msg.includes("failed to fetch") || msg.includes("network")) {
+                    addMessage("網路連線中斷。查詢可能需 30–60 秒，若剛斷線請重新整理後再試一次。", "error");
+                } else if (e.message) {
+                    addMessage(e.message, "error");
+                } else {
+                    addMessage("無法連線到伺服器，請確認後端是否啟動。", "error");
+                }
             }
 
             isLoading = false;

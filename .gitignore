@@ -1,6 +1,7 @@
 repos/
 projects.json
 users.json
+settings.json
 admin-logs.json
 admin-logs-archive.json
 *.pem

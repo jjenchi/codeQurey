@@ -91,6 +91,42 @@
         .log-table { width: 100%; font-size: 13px; border-collapse: collapse; }
         .log-table th, .log-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
         .log-table th { font-weight: 600; color: #555; }
+        .log-table .view-answer-btn {
+            padding: 3px 10px;
+            border: 1px solid #93c5fd;
+            background: #eff6ff;
+            color: #2563eb;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .log-table .view-answer-btn:hover { background: #dbeafe; }
+        .answer-content {
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        /* Usage stats */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-card .label { font-size: 12px; color: #666; margin-bottom: 6px; }
+        .stat-card .value { font-size: 24px; font-weight: 700; color: #2563eb; }
+        .stat-card .sub { font-size: 12px; color: #888; margin-top: 4px; }
+        .usage-note { font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.5; }
+        .usage-note a { color: #2563eb; }
+        .section-title { font-size: 15px; font-weight: 600; margin: 20px 0 10px; }
 
         /* Login */
         .login-page {
@@ -273,6 +309,8 @@
             <button class="active" onclick="switchTab('projects',this)">專案管理</button>
             <button id="usersTab" onclick="switchTab('users',this)" style="display:none">帳號管理</button>
             <button onclick="switchTab('logs',this)">操作紀錄</button>
+            <button onclick="switchTab('usage',this)">用量統計</button>
+            <button id="settingsTab" onclick="switchTab('settings',this)" style="display:none">系統設定</button>
         </div>
 
         <!-- 專案管理 -->
@@ -292,9 +330,53 @@
             <button class="add-btn" id="clearLogsBtn" style="display:none;background:#dc2626" onclick="clearLogs()">清除操作紀錄</button>
             <div class="card" style="overflow-x:auto">
                 <table class="log-table">
-                    <thead><tr><th>時間</th><th>使用者</th><th>操作</th><th>詳情</th></tr></thead>
+                    <thead><tr><th>時間</th><th>使用者</th><th>操作</th><th>詳情</th><th>回覆</th></tr></thead>
                     <tbody id="logBody"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- 用量統計 -->
+        <div class="tab-content" id="tab-usage">
+            <div class="usage-note" id="usageNote">載入中...</div>
+            <div class="stat-grid" id="usageStats"></div>
+            <div class="section-title">每月統計</div>
+            <div class="card" style="overflow-x:auto">
+                <table class="log-table">
+                    <thead><tr><th>月份</th><th>查詢次數</th><th>攔截</th><th>API 呼叫（估）</th><th>費用（估）</th></tr></thead>
+                    <tbody id="usageMonthBody"></tbody>
+                </table>
+            </div>
+            <div class="section-title">使用者統計</div>
+            <div class="card" style="overflow-x:auto">
+                <table class="log-table">
+                    <thead><tr><th>使用者</th><th>查詢次數</th><th>攔截</th></tr></thead>
+                    <tbody id="usageUserBody"></tbody>
+                </table>
+            </div>
+            <div class="section-title">專案統計（Top 15）</div>
+            <div class="card" style="overflow-x:auto">
+                <table class="log-table">
+                    <thead><tr><th>專案</th><th>查詢次數</th></tr></thead>
+                    <tbody id="usageProjectBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 系統設定（Admin） -->
+        <div class="tab-content" id="tab-settings">
+            <div class="card">
+                <h3 style="margin-bottom:12px">AI 查詢模型</h3>
+                <p class="usage-note" style="margin-bottom:12px">
+                    變更後立即生效，無需重啟。分類器固定使用 Composer 2.5（快速）。
+                    <br>Composer 2.5 適合日常查詢；Auto 依查詢次數漸進：第 1 次 Composer → 第 2 次 Sonnet → 第 3 次起 Opus（皆用最新版）。
+                </p>
+                <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px">主 Agent 模型</label>
+                <select id="modelSelect" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:white;margin-bottom:12px">
+                    <option value="">載入中...</option>
+                </select>
+                <button class="add-btn" style="margin-bottom:0" onclick="saveModel()">儲存模型設定</button>
+                <div id="modelSaveMsg" style="margin-top:10px;font-size:13px;color:#16a34a"></div>
             </div>
         </div>
     </div>
@@ -344,6 +426,18 @@
     </div>
 </div>
 
+<!-- ===== 回覆 Modal ===== -->
+<div class="overlay" id="answerOverlay">
+    <div class="modal" style="max-width:640px;width:92%">
+        <h2>AI 回覆</h2>
+        <div id="answerMeta" style="font-size:13px;color:#666;margin:12px 0;line-height:1.5"></div>
+        <div class="answer-content" id="answerContent"></div>
+        <div class="btn-row" style="margin-top:16px">
+            <button class="cancel-btn" onclick="closeModal('answerOverlay')">關閉</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -355,6 +449,7 @@ let currentUsername = localStorage.getItem("cq_user");
 let editProject = null;
 let forgotUsername = "";
 let currentRole = localStorage.getItem("cq_role");
+let logCache = [];
 
 function esc(s) {
     return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
@@ -389,11 +484,13 @@ function checkAuth() {
             document.getElementById("usersTab").style.display = "";
             document.getElementById("tab-users").style.display = "";
             document.getElementById("clearLogsBtn").style.display = "";
+            document.getElementById("settingsTab").style.display = "";
             loadUsers();
         } else {
             document.getElementById("usersTab").style.display = "none";
             document.getElementById("tab-users").style.display = "none";
             document.getElementById("clearLogsBtn").style.display = "none";
+            document.getElementById("settingsTab").style.display = "none";
         }
         loadProjects();
         loadLogs();
@@ -510,6 +607,8 @@ function switchTab(name, btn) {
     document.getElementById(`tab-${name}`).classList.add("active");
     btn.classList.add("active");
     if (name === "logs") loadLogs();
+    if (name === "usage") loadUsage();
+    if (name === "settings") loadSettings();
 }
 
 // ===== 專案管理 =====
@@ -699,17 +798,29 @@ async function loadLogs() {
     try {
         const res = await authFetch(`${API}/api/admin/logs`);
         const logs = await res.json();
+        logCache = logs;
         const body = document.getElementById("logBody");
         if (logs.length === 0) {
-            body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px">尚無紀錄</td></tr>';
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">尚無紀錄</td></tr>';
             return;
         }
-        body.innerHTML = logs.map(l => {
+        body.innerHTML = logs.map((l, i) => {
             const t = new Date(l.time);
             const ts = `${t.getMonth()+1}/${t.getDate()} ${t.getHours().toString().padStart(2,"0")}:${t.getMinutes().toString().padStart(2,"0")}`;
-            return `<tr><td>${ts}</td><td>${esc(l.user)}</td><td>${esc(l.action)}</td><td>${esc(l.detail)}</td></tr>`;
+            const answerCell = l.answer
+                ? `<button class="view-answer-btn" onclick="showAnswer(${i})">查看回覆</button>`
+                : '<span style="color:#ccc">—</span>';
+            return `<tr><td>${ts}</td><td>${esc(l.user)}</td><td>${esc(l.action)}</td><td>${esc(l.detail)}</td><td>${answerCell}</td></tr>`;
         }).join("");
     } catch {}
+}
+
+function showAnswer(i) {
+    const l = logCache[i];
+    if (!l?.answer) return;
+    document.getElementById("answerMeta").textContent = `${l.action} · ${l.user} · ${l.detail}`;
+    document.getElementById("answerContent").textContent = l.answer;
+    document.getElementById("answerOverlay").classList.add("show");
 }
 
 // ===== 清除紀錄 =====
@@ -721,6 +832,102 @@ async function clearLogs() {
         toast("操作紀錄已清除");
         loadLogs();
     } catch { toast("清除失敗"); }
+}
+
+// ===== 用量統計 =====
+
+async function loadUsage() {
+    try {
+        const res = await authFetch(`${API}/api/admin/usage`);
+        const data = await res.json();
+
+        const key = data.api_key || {};
+        document.getElementById("usageNote").innerHTML =
+            `API Key：<strong>${esc(key.name || "—")}</strong>（${esc(key.email || "—")}）` +
+            ` · 模型：<strong>${esc(data.model || "—")}</strong><br>` +
+            `${esc(data.pricing?.note || "")} ` +
+            `<a href="${esc(data.dashboard_url || "https://cursor.com/dashboard")}" target="_blank" rel="noopener">開啟 Cursor Dashboard</a><br>` +
+            `<span style="color:#888">費用為粗估（假設每次查詢約 ${(data.pricing?.estimated_input_tokens_per_query || 0).toLocaleString()} input tokens × $${data.pricing?.input_per_million_usd || 0.5}/M）</span>`;
+
+        const t = data.totals || {};
+        document.getElementById("usageStats").innerHTML = `
+            <div class="stat-card"><div class="label">總查詢次數</div><div class="value">${t.queries || 0}</div></div>
+            <div class="stat-card"><div class="label">API 呼叫（估）</div><div class="value">${t.api_calls_estimated || 0}</div><div class="sub">每次查詢 ≈ 2 次</div></div>
+            <div class="stat-card"><div class="label">平均耗時</div><div class="value">${t.avg_seconds || 0}s</div></div>
+            <div class="stat-card"><div class="label">攔截次數</div><div class="value">${t.blocked || 0}</div></div>
+            <div class="stat-card"><div class="label">費用粗估（USD）</div><div class="value">$${(t.estimated_cost_usd || 0).toFixed(2)}</div><div class="sub">非正式帳單</div></div>
+        `;
+
+        const monthBody = document.getElementById("usageMonthBody");
+        const months = data.by_month_list || [];
+        monthBody.innerHTML = months.length === 0
+            ? '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">尚無資料</td></tr>'
+            : months.map(m => `<tr>
+                <td>${esc(m.month)}</td>
+                <td>${m.queries}</td>
+                <td>${m.blocked}</td>
+                <td>${m.api_calls_estimated}</td>
+                <td>$${(m.estimated_cost_usd || 0).toFixed(2)}</td>
+            </tr>`).join("");
+
+        const userBody = document.getElementById("usageUserBody");
+        const users = data.by_user_list || [];
+        userBody.innerHTML = users.length === 0
+            ? '<tr><td colspan="3" style="text-align:center;color:#888;padding:20px">尚無資料</td></tr>'
+            : users.map(u => `<tr><td>${esc(u.user)}</td><td>${u.queries}</td><td>${u.blocked}</td></tr>`).join("");
+
+        const projectBody = document.getElementById("usageProjectBody");
+        const projects = data.by_project_list || [];
+        projectBody.innerHTML = projects.length === 0
+            ? '<tr><td colspan="2" style="text-align:center;color:#888;padding:20px">尚無資料</td></tr>'
+            : projects.map(p => `<tr><td>${esc(p.project)}</td><td>${p.queries}</td></tr>`).join("");
+    } catch {
+        document.getElementById("usageNote").textContent = "無法載入用量統計";
+    }
+}
+
+// ===== 系統設定 =====
+
+async function loadSettings() {
+    const msg = document.getElementById("modelSaveMsg");
+    msg.textContent = "";
+    try {
+        const res = await authFetch(`${API}/api/admin/settings`);
+        const data = await res.json();
+        const sel = document.getElementById("modelSelect");
+        const models = data.models || [];
+        sel.innerHTML = models.map(m =>
+            `<option value="${esc(m.id)}"${m.id === data.ai_model ? " selected" : ""}>${esc(m.label || m.id)}</option>`
+        ).join("");
+    } catch {
+        document.getElementById("modelSelect").innerHTML = '<option value="">無法載入模型清單</option>';
+    }
+}
+
+async function saveModel() {
+    const msg = document.getElementById("modelSaveMsg");
+    msg.style.color = "#16a34a";
+    msg.textContent = "";
+    const model = document.getElementById("modelSelect").value;
+    if (!model) { msg.style.color = "#dc2626"; msg.textContent = "請選擇模型"; return; }
+    try {
+        const res = await authFetch(`${API}/api/admin/settings/model`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model }),
+        });
+        const data = await res.json();
+        if (data.error) {
+            msg.style.color = "#dc2626";
+            msg.textContent = data.error;
+        } else {
+            msg.textContent = `已儲存，目前模型：${data.ai_model}`;
+            toast("AI 模型已更新");
+        }
+    } catch {
+        msg.style.color = "#dc2626";
+        msg.textContent = "儲存失敗";
+    }
 }
 
 // ===== Modal =====
