@@ -252,7 +252,80 @@
             background: white;
             border-top: 1px solid #e5e5e5;
             display: flex;
+            flex-direction: column;
             gap: 8px;
+        }
+
+        .attach-preview {
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .attach-preview.show { display: flex; }
+        .attach-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 6px 8px;
+            font-size: 12px;
+            color: #374151;
+            max-width: 100%;
+        }
+        .attach-chip img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .attach-chip .name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 140px;
+        }
+        .attach-chip .rm {
+            border: none;
+            background: transparent;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0 2px;
+        }
+        .attach-chip .rm:hover { color: #dc2626; }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .attach-btns {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .attach-btns button {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .attach-btns button:hover:not(:disabled) { background: #e5e7eb; }
+        .attach-btns button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .input-area textarea {
@@ -271,20 +344,54 @@
             border-color: #2563eb;
         }
 
-        .input-area button {
+        .input-area .send-btn {
             background: #2563eb;
             color: white;
             border: none;
             border-radius: 12px;
             padding: 0 20px;
+            height: 42px;
             font-size: 15px;
             cursor: pointer;
             flex-shrink: 0;
         }
 
-        .input-area button:disabled {
+        .input-area .send-btn:disabled {
             background: #93c5fd;
             cursor: not-allowed;
+        }
+
+        .message.user .msg-atts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .message.user .msg-atts img {
+            max-width: 120px;
+            max-height: 90px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        .message.user .msg-atts .file-tag {
+            background: rgba(255,255,255,0.2);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .message.assistant .msg-atts {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .message.assistant .msg-atts img {
+            max-width: 100%;
+            max-height: 360px;
+            border-radius: 10px;
+            object-fit: contain;
+            background: #f3f4f6;
+            cursor: zoom-in;
         }
 
         .welcome {
@@ -313,12 +420,12 @@
     <div class="login-overlay" id="loginOverlay">
         <div class="login-box">
             <h1>CodeQuery</h1>
-            <p>請登入以查詢專案資訊</p>
-            <input type="text" id="loginUser" placeholder="帳號" autocomplete="username"
+            <p data-i18n="indexLoginSubtitle">請登入以查詢專案資訊</p>
+            <input type="text" id="loginUser" data-i18n-placeholder="username" placeholder="帳號" autocomplete="username"
                    onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
-            <input type="password" id="loginPass" placeholder="密碼" autocomplete="current-password"
+            <input type="password" id="loginPass" data-i18n-placeholder="password" placeholder="密碼" autocomplete="current-password"
                    onkeydown="if(event.key==='Enter')doLogin()">
-            <button id="loginBtn" onclick="doLogin()">登入</button>
+            <button id="loginBtn" onclick="doLogin()" data-i18n="login">登入</button>
             <div class="login-error" id="loginError"></div>
         </div>
     </div>
@@ -336,27 +443,41 @@
                 </select>
             </div>
             <div class="header-right">
-                <button class="btn-clear" id="clearBtn" onclick="clearChat()" disabled>清除對話</button>
+                <button class="btn-clear" id="clearBtn" onclick="clearChat()" disabled data-i18n="indexClearChat">清除對話</button>
                 <span class="header-user" id="headerUser"></span>
-                <button class="btn-logout" onclick="doLogout()">登出</button>
+                <button class="btn-logout" onclick="doLogout()" data-i18n="logout">登出</button>
             </div>
         </header>
 
         <div class="chat-area" id="chatArea">
             <div class="no-project" id="noProject">
-                <h2>請先選擇專案</h2>
-                <p>從上方下拉選單選擇要查詢的專案</p>
+                <h2 data-i18n="indexNoProjectTitle">請先選擇專案</h2>
+                <p data-i18n="indexNoProjectDesc">從上方下拉選單選擇要查詢的專案</p>
             </div>
         </div>
 
         <div class="input-area">
-            <textarea id="input" rows="1" placeholder="輸入你的問題..."
-                      onkeydown="handleKey(event)" disabled></textarea>
-            <button id="sendBtn" onclick="send()" disabled>送出</button>
+            <div class="attach-preview" id="attachPreview"></div>
+            <div class="input-row">
+                <div class="attach-btns">
+                    <button type="button" id="fileBtn" onclick="pickFile()" disabled data-i18n-title="attachFile" title="附檔">📎</button>
+                    <button type="button" id="cameraBtn" onclick="pickCamera()" disabled data-i18n-title="attachCamera" title="拍照">📷</button>
+                </div>
+                <textarea id="input" rows="1" data-i18n-placeholder="indexInputPlaceholder" placeholder="輸入你的問題..."
+                          onkeydown="handleKey(event)" disabled></textarea>
+                <button class="send-btn" id="sendBtn" onclick="send()" disabled data-i18n="send">送出</button>
+            </div>
+            <input type="file" id="fileInput" accept=".txt,.log,.csv,.md,.json,.xml,.ini,.cfg,.conf,.yaml,.yml,.tsv,text/plain,image/jpeg,image/png,image/webp,image/gif" multiple hidden onchange="onFilesSelected(event)">
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden onchange="onFilesSelected(event)">
         </div>
     </div>
 
+    <script src="i18n.js"></script>
     <script>
+        const { t, applyI18n } = I18N;
+        applyI18n();
+        document.title = t("indexTitle");
+
         const API_URL = location.hostname === "localhost" || location.hostname === "127.0.0.1"
             ? "http://localhost:8090"
             : `${location.protocol}//${location.host}`;
@@ -366,10 +487,15 @@
         const projectSelect = document.getElementById("projectSelect");
         const subfolderSelect = document.getElementById("subfolderSelect");
         const clearBtn = document.getElementById("clearBtn");
+        const fileBtn = document.getElementById("fileBtn");
+        const cameraBtn = document.getElementById("cameraBtn");
+        const attachPreview = document.getElementById("attachPreview");
         let sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         let isLoading = false;
         let currentProject = null;
         let currentSubfolder = "";
+        let pendingAttachments = [];
+        const MAX_ATTACH = 3;
 
         // --- Auth ---
 
@@ -385,7 +511,7 @@
             const token = getToken();
             if (!token) {
                 showLogin();
-                throw new Error("未登入");
+                throw new Error(t("errNotLoggedIn"));
             }
             const headers = { ...(options.headers || {}), "Authorization": `Bearer ${token}` };
             if (options.body && !headers["Content-Type"]) {
@@ -396,7 +522,7 @@
                 sessionStorage.removeItem("cq_token");
                 sessionStorage.removeItem("cq_username");
                 showLogin();
-                throw new Error("登入已過期");
+                throw new Error(t("errLoginExpired"));
             }
             return res;
         }
@@ -424,12 +550,12 @@
             const btn = document.getElementById("loginBtn");
 
             if (!username || !password) {
-                errorEl.textContent = "請輸入帳號和密碼";
+                errorEl.textContent = t("errEnterCredentials");
                 return;
             }
 
             btn.disabled = true;
-            btn.textContent = "登入中...";
+            btn.textContent = t("loggingIn");
             errorEl.textContent = "";
 
             try {
@@ -441,7 +567,7 @@
                 const data = await res.json();
 
                 if (!res.ok) {
-                    errorEl.textContent = data.error || "登入失敗";
+                    errorEl.textContent = data.error || t("errLoginFailed");
                     return;
                 }
 
@@ -449,10 +575,10 @@
                 sessionStorage.setItem("cq_username", data.username);
                 showMain();
             } catch {
-                errorEl.textContent = "無法連線到伺服器";
+                errorEl.textContent = t("errNetwork");
             } finally {
                 btn.disabled = false;
-                btn.textContent = "登入";
+                btn.textContent = t("login");
             }
         }
 
@@ -472,7 +598,7 @@
                     throw new Error(err.error || `HTTP ${res.status}`);
                 }
                 const projects = await res.json();
-                projectSelect.innerHTML = '<option value="">-- 選擇專案 --</option>';
+                projectSelect.innerHTML = `<option value="">${t("indexSelectProject")}</option>`;
                 projects.forEach(p => {
                     const opt = document.createElement("option");
                     opt.value = `${p.developer}/${p.name}`;
@@ -484,7 +610,7 @@
                     onProjectChange();
                 }
             } catch {
-                projectSelect.innerHTML = '<option value="">無法載入專案</option>';
+                projectSelect.innerHTML = `<option value="">${t("indexLoadProjectsFailed")}</option>`;
             }
         }
 
@@ -494,7 +620,7 @@
                 currentProject = null;
                 currentSubfolder = "";
                 subfolderSelect.style.display = "none";
-                chatArea.innerHTML = '<div class="no-project"><h2>請先選擇專案</h2><p>從上方下拉選單選擇要查詢的專案</p></div>';
+                chatArea.innerHTML = `<div class="no-project"><h2>${t("indexNoProjectTitle")}</h2><p>${t("indexNoProjectDesc")}</p></div>`;
                 updateInputState();
                 return;
             }
@@ -507,7 +633,7 @@
                 const res = await authFetch(`${API_URL}/api/projects/${developer}/${name}/subfolders`);
                 const folders = await res.json();
                 if (folders.length > 0) {
-                    subfolderSelect.innerHTML = '<option value="">全部</option>';
+                    subfolderSelect.innerHTML = `<option value="">${t("all")}</option>`;
                     folders.forEach(f => {
                         const opt = document.createElement("option");
                         opt.value = f;
@@ -535,62 +661,210 @@
         function updateInputState() {
             const enabled = !!currentProject && !isLoading;
             input.disabled = !currentProject;
-            sendBtn.disabled = !enabled;
+            sendBtn.disabled = !enabled || (!input.value.trim() && pendingAttachments.length === 0);
             clearBtn.disabled = !currentProject || isLoading;
+            fileBtn.disabled = !enabled;
+            cameraBtn.disabled = !enabled;
+        }
+
+        function pickFile() {
+            if (!currentProject || isLoading) return;
+            document.getElementById("fileInput").value = "";
+            document.getElementById("fileInput").click();
+        }
+
+        function pickCamera() {
+            if (!currentProject || isLoading) return;
+            document.getElementById("cameraInput").value = "";
+            document.getElementById("cameraInput").click();
+        }
+
+        async function onFilesSelected(event) {
+            const files = [...(event.target.files || [])];
+            for (const file of files) {
+                if (pendingAttachments.length >= MAX_ATTACH) {
+                    alert(t("attachMax", { max: MAX_ATTACH }));
+                    break;
+                }
+                try {
+                    if (file.type.startsWith("image/")) {
+                        const compressed = await compressImage(file);
+                        pendingAttachments.push(compressed);
+                    } else if (isTextFile(file)) {
+                        const content = await readTextFile(file);
+                        if (!content.trim()) continue;
+                        pendingAttachments.push({
+                            kind: "text",
+                            name: file.name,
+                            content: content.slice(0, 80000),
+                        });
+                    } else {
+                        alert(t("attachUnsupported"));
+                    }
+                } catch {
+                    alert(t("attachReadFailed"));
+                }
+            }
+            renderAttachPreview();
+            updateInputState();
+        }
+
+        function isTextFile(file) {
+            if (file.type.startsWith("text/")) return true;
+            return /\.(txt|log|csv|md|json|xml|ini|cfg|conf|yaml|yml|tsv)$/i.test(file.name);
+        }
+
+        function readTextFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ""));
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = reject;
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onerror = reject;
+                    img.onload = () => {
+                        const maxW = 1280;
+                        let { width, height } = img;
+                        if (width > maxW) {
+                            height = Math.round(height * (maxW / width));
+                            width = maxW;
+                        }
+                        const canvas = document.createElement("canvas");
+                        canvas.width = width;
+                        canvas.height = height;
+                        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+                        const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+                        const base64 = dataUrl.replace(/^data:[^;]+;base64,/, "");
+                        resolve({
+                            kind: "image",
+                            name: file.name.replace(/\.\w+$/, "") + ".jpg",
+                            mimeType: "image/jpeg",
+                            content: base64,
+                            preview: dataUrl,
+                        });
+                    };
+                    img.src = reader.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderAttachPreview() {
+            if (!pendingAttachments.length) {
+                attachPreview.classList.remove("show");
+                attachPreview.innerHTML = "";
+                return;
+            }
+            attachPreview.classList.add("show");
+            attachPreview.innerHTML = pendingAttachments.map((a, i) => {
+                if (a.kind === "image") {
+                    return `<div class="attach-chip"><img src="${a.preview}" alt=""><span class="name">${escHtml(a.name)}</span><button type="button" class="rm" onclick="removeAttach(${i})">×</button></div>`;
+                }
+                return `<div class="attach-chip"><span>📄</span><span class="name">${escHtml(a.name)}</span><button type="button" class="rm" onclick="removeAttach(${i})">×</button></div>`;
+            }).join("");
+        }
+
+        function removeAttach(i) {
+            pendingAttachments.splice(i, 1);
+            renderAttachPreview();
+            updateInputState();
+        }
+
+        function escHtml(s) {
+            return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
         }
 
         function showWelcome() {
             chatArea.innerHTML = `
                 <div class="welcome">
-                    <h2>你好，有什麼想了解的？</h2>
-                    <p>你可以用自然語言詢問程式相關的問題，例如：<br>
-                    「登入功能做到什麼程度？」<br>
-                    「有哪些畫面？」<br>
-                    「最近改了什麼？」</p>
+                    <h2>${t("indexWelcomeTitle")}</h2>
+                    <p>${t("indexWelcomeBody")}</p>
                 </div>`;
         }
 
         function clearChat() {
             if (isLoading || !currentProject) return;
             sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            pendingAttachments = [];
+            renderAttachPreview();
             showWelcome();
             input.focus();
         }
 
-        function addMessage(text, role) {
+        function addMessage(text, role, atts) {
             const welcome = chatArea.querySelector(".welcome");
             if (welcome) welcome.remove();
 
             const div = document.createElement("div");
             div.className = `message ${role}`;
-            div.textContent = text;
+            if (role === "user" && atts?.length) {
+                const wrap = document.createElement("div");
+                wrap.className = "msg-atts";
+                for (const a of atts) {
+                    if (a.kind === "image" && a.preview) {
+                        const img = document.createElement("img");
+                        img.src = a.preview;
+                        img.alt = a.name;
+                        wrap.appendChild(img);
+                    } else {
+                        const tag = document.createElement("span");
+                        tag.className = "file-tag";
+                        tag.textContent = "📄 " + a.name;
+                        wrap.appendChild(tag);
+                    }
+                }
+                div.appendChild(wrap);
+            }
+            const textNode = document.createElement("div");
+            textNode.textContent = text;
+            div.appendChild(textNode);
+            if (role === "assistant" && atts?.length) {
+                const wrap = document.createElement("div");
+                wrap.className = "msg-atts";
+                for (const a of atts) {
+                    const img = document.createElement("img");
+                    img.src = a.preview || `data:${a.mimeType};base64,${a.data}`;
+                    img.alt = a.name || "";
+                    img.title = a.name || "";
+                    img.onclick = () => window.open(img.src, "_blank");
+                    wrap.appendChild(img);
+                }
+                div.appendChild(wrap);
+            }
             chatArea.appendChild(div);
             chatArea.scrollTop = chatArea.scrollHeight;
             return div;
         }
 
-        const TYPING_MSGS = [
-            "正在搜尋程式碼...",
-            "正在閱讀相關檔案...",
-            "正在整理答案..."
-        ];
+        function getTypingMsgs() {
+            return [t("indexTyping1"), t("indexTyping2"), t("indexTyping3")];
+        }
 
         function showTyping() {
+            const msgs = getTypingMsgs();
             const div = document.createElement("div");
             div.className = "typing";
             div.id = "typing";
             div.innerHTML = `
                 <div class="typing-dots"><span></span><span></span><span></span></div>
-                <div class="typing-text">正在搜尋程式碼...</div>
+                <div class="typing-text">${msgs[0]}</div>
             `;
             chatArea.appendChild(div);
             chatArea.scrollTop = chatArea.scrollHeight;
 
             let i = 0;
             window._typingInterval = setInterval(() => {
-                i = (i + 1) % TYPING_MSGS.length;
+                i = (i + 1) % msgs.length;
                 const txt = div.querySelector(".typing-text");
-                if (txt) txt.textContent = TYPING_MSGS[i];
+                if (txt) txt.textContent = msgs[i];
             }, 3000);
         }
 
@@ -602,54 +876,71 @@
 
         async function send() {
             const question = input.value.trim();
-            if (!question || isLoading || !currentProject) return;
+            if (isLoading || !currentProject) return;
+            if (!question && pendingAttachments.length === 0) return;
+
+            const attsToSend = pendingAttachments.map(a => ({
+                kind: a.kind,
+                name: a.name,
+                content: a.content,
+                mimeType: a.mimeType,
+            }));
+            const attsForUi = pendingAttachments.map(a => ({
+                kind: a.kind,
+                name: a.name,
+                preview: a.preview,
+            }));
 
             isLoading = true;
             updateInputState();
             input.value = "";
             input.style.height = "auto";
+            pendingAttachments = [];
+            renderAttachPreview();
 
-            addMessage(question, "user");
+            const displayText = question || t("attachOnlyQuestion");
+            addMessage(displayText, "user", attsForUi);
             showTyping();
 
             try {
                 const res = await authFetch(`${API_URL}/api/query`, {
                     method: "POST",
                     body: JSON.stringify({
-                        question,
+                        question: question || undefined,
                         session_id: sessionId,
                         developer: currentProject.developer,
                         name: currentProject.name,
                         subfolder: currentSubfolder || undefined,
+                        attachments: attsToSend.length ? attsToSend : undefined,
                     })
                 });
                 let data = {};
                 try {
                     data = await res.json();
                 } catch {
-                    throw new Error("伺服器回應格式異常，請稍後再試。");
+                    throw new Error(t("errServerResponse"));
                 }
                 hideTyping();
 
                 if (res.status === 429) {
-                    addMessage(data.error || "查詢太頻繁，請稍後再試", "error");
+                    addMessage(data.error || t("errRateLimit"), "error");
                 } else if (res.status >= 500) {
-                    addMessage(data.error || "伺服器暫時無法處理查詢，請稍後再試。", "error");
+                    addMessage(data.error || t("errServerBusy"), "error");
                 } else if (data.error) {
                     addMessage(data.error, "error");
                 } else {
-                    addMessage(data.answer, "assistant");
+                    addMessage(data.answer, "assistant", data.images);
                 }
             } catch (e) {
                 hideTyping();
-                if (e.message === "登入已過期" || e.message === "未登入") return;
+                if (e.message === t("errLoginExpired") || e.message === t("errNotLoggedIn")) return;
                 const msg = (e.message || "").toLowerCase();
                 if (msg.includes("failed to fetch") || msg.includes("network")) {
-                    addMessage("網路連線中斷。查詢可能需 30–60 秒，若剛斷線請重新整理後再試一次。", "error");
+                    addMessage(t("errNetworkDisconnect"), "error");
                 } else if (e.message) {
                     addMessage(e.message, "error");
                 } else {
-                    addMessage("無法連線到伺服器，請確認後端是否啟動。", "error");
+                    addMessage(t("errBackendDown"), "error");
                 }
             }
 
@@ -668,6 +959,7 @@
         input.addEventListener("input", () => {
             input.style.height = "auto";
             input.style.height = Math.min(input.scrollHeight, 120) + "px";
+            updateInputState();
         });
 
         // --- Init ---

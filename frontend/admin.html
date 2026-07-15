@@ -255,41 +255,41 @@
     <div class="login-box" id="loginBox">
         <!-- 登入 -->
         <div id="loginForm">
-            <h2>CodeQuery 管理</h2>
-            <div class="subtitle">請登入管理員帳號</div>
-            <label>帳號</label>
-            <input id="loginUser" placeholder="帳號">
-            <label>密碼</label>
-            <input id="loginPass" type="password" placeholder="密碼"
+            <h2 data-i18n="adminLoginTitle">CodeQuery 管理</h2>
+            <div class="subtitle" data-i18n="adminLoginSubtitle">請登入管理員帳號</div>
+            <label data-i18n="username">帳號</label>
+            <input id="loginUser" data-i18n-placeholder="username" placeholder="帳號">
+            <label data-i18n="password">密碼</label>
+            <input id="loginPass" type="password" data-i18n-placeholder="password" placeholder="密碼"
                    onkeydown="if(event.key==='Enter')doLogin()">
             <div class="error-msg" id="loginError"></div>
-            <button class="primary-btn" onclick="doLogin()">登入</button>
-            <button class="link-btn" onclick="showForgot()">忘記密碼</button>
+            <button class="primary-btn" onclick="doLogin()" data-i18n="login">登入</button>
+            <button class="link-btn" onclick="showForgot()" data-i18n="adminForgotPassword">忘記密碼</button>
         </div>
 
         <!-- 忘記密碼 - Step 1 -->
         <div id="forgotForm" style="display:none">
-            <h2>忘記密碼</h2>
-            <div class="subtitle">輸入您的帳號，驗證碼將寄到綁定的 Email</div>
-            <label>帳號</label>
-            <input id="forgotUser" placeholder="帳號">
+            <h2 data-i18n="adminForgotTitle">忘記密碼</h2>
+            <div class="subtitle" data-i18n="adminForgotSubtitle">輸入您的帳號，驗證碼將寄到綁定的 Email</div>
+            <label data-i18n="username">帳號</label>
+            <input id="forgotUser" data-i18n-placeholder="username" placeholder="帳號">
             <div class="error-msg" id="forgotError"></div>
-            <button class="primary-btn" onclick="sendCode()">送出驗證碼</button>
-            <button class="back-btn" onclick="showLogin()">← 返回登入</button>
+            <button class="primary-btn" onclick="sendCode()" data-i18n="adminSendCode">送出驗證碼</button>
+            <button class="back-btn" onclick="showLogin()" data-i18n="adminBackLogin">← 返回登入</button>
         </div>
 
         <!-- 忘記密碼 - Step 2 -->
         <div id="resetForm" style="display:none">
-            <h2>重設密碼</h2>
-            <div class="subtitle">請輸入收到的驗證碼和新密碼</div>
-            <label>驗證碼</label>
-            <input id="resetCode" placeholder="6 位數驗證碼">
-            <label>新密碼</label>
-            <input id="resetPass" type="password" placeholder="新密碼">
+            <h2 data-i18n="adminResetTitle">重設密碼</h2>
+            <div class="subtitle" data-i18n="adminResetSubtitle">請輸入收到的驗證碼和新密碼</div>
+            <label data-i18n="adminVerifyCode">驗證碼</label>
+            <input id="resetCode" data-i18n-placeholder="adminVerifyCodePh" placeholder="6 位數驗證碼">
+            <label data-i18n="adminNewPassword">新密碼</label>
+            <input id="resetPass" type="password" data-i18n-placeholder="adminNewPassword" placeholder="新密碼">
             <div class="error-msg" id="resetError"></div>
             <div class="success-msg" id="resetSuccess"></div>
-            <button class="primary-btn" onclick="doReset()">重設密碼</button>
-            <button class="back-btn" onclick="showLogin()">← 返回登入</button>
+            <button class="primary-btn" onclick="doReset()" data-i18n="adminResetPassword">重設密碼</button>
+            <button class="back-btn" onclick="showLogin()" data-i18n="adminBackLogin">← 返回登入</button>
         </div>
     </div>
 </div>
@@ -297,40 +297,46 @@
 <!-- ===== 管理主頁 ===== -->
 <div id="mainPage" style="display:none">
     <header>
-        <span>CodeQuery — 管理</span>
+        <span data-i18n="adminTitle">CodeQuery — 管理</span>
         <div class="user-info">
             <span id="currentUser"></span>
-            <button onclick="logout()">登出</button>
+            <button onclick="logout()" data-i18n="logout">登出</button>
         </div>
     </header>
 
     <div class="container">
         <div class="tabs" id="tabBar">
-            <button class="active" onclick="switchTab('projects',this)">專案管理</button>
-            <button id="usersTab" onclick="switchTab('users',this)" style="display:none">帳號管理</button>
-            <button onclick="switchTab('logs',this)">操作紀錄</button>
-            <button onclick="switchTab('usage',this)">用量統計</button>
-            <button id="settingsTab" onclick="switchTab('settings',this)" style="display:none">系統設定</button>
+            <button class="active" onclick="switchTab('projects',this)" data-i18n="adminTabProjects">專案管理</button>
+            <button id="usersTab" onclick="switchTab('users',this)" style="display:none" data-i18n="adminTabUsers">帳號管理</button>
+            <button onclick="switchTab('logs',this)" data-i18n="adminTabLogs">操作紀錄</button>
+            <button onclick="switchTab('usage',this)" data-i18n="adminTabUsage">用量統計</button>
+            <button id="settingsTab" onclick="switchTab('settings',this)" style="display:none" data-i18n="adminTabSettings">系統設定</button>
         </div>
 
         <!-- 專案管理 -->
         <div class="tab-content active" id="tab-projects">
-            <button class="add-btn" onclick="openProjectModal()">+ 新增專案</button>
+            <button class="add-btn" onclick="openProjectModal()" data-i18n="adminAddProject">+ 新增專案</button>
             <div id="projectList"></div>
         </div>
 
         <!-- 帳號管理 -->
         <div class="tab-content" id="tab-users">
-            <button class="add-btn" onclick="openUserModal()">+ 新增帳號</button>
+            <button class="add-btn" onclick="openUserModal()" data-i18n="adminAddUser">+ 新增帳號</button>
             <div id="userList"></div>
         </div>
 
         <!-- 操作紀錄 -->
         <div class="tab-content" id="tab-logs">
-            <button class="add-btn" id="clearLogsBtn" style="display:none;background:#dc2626" onclick="clearLogs()">清除操作紀錄</button>
+            <button class="add-btn" id="clearLogsBtn" style="display:none;background:#dc2626" onclick="clearLogs()" data-i18n="adminClearLogs">清除操作紀錄</button>
             <div class="card" style="overflow-x:auto">
                 <table class="log-table">
-                    <thead><tr><th>時間</th><th>使用者</th><th>操作</th><th>詳情</th><th>回覆</th></tr></thead>
+                    <thead><tr>
+                        <th data-i18n="adminColTime">時間</th>
+                        <th data-i18n="adminColUser">使用者</th>
+                        <th data-i18n="adminColAction">操作</th>
+                        <th data-i18n="adminColDetail">詳情</th>
+                        <th data-i18n="adminColReply">回覆</th>
+                    </tr></thead>
                     <tbody id="logBody"></tbody>
                 </table>
             </div>
@@ -338,26 +344,39 @@
 
         <!-- 用量統計 -->
         <div class="tab-content" id="tab-usage">
-            <div class="usage-note" id="usageNote">載入中...</div>
+            <div class="usage-note" id="usageNote" data-i18n="adminUsageLoading">載入中...</div>
             <div class="stat-grid" id="usageStats"></div>
-            <div class="section-title">每月統計</div>
+            <div class="section-title" data-i18n="adminUsageMonth">每月統計</div>
             <div class="card" style="overflow-x:auto">
                 <table class="log-table">
-                    <thead><tr><th>月份</th><th>查詢次數</th><th>攔截</th><th>API 呼叫（估）</th><th>費用（估）</th></tr></thead>
+                    <thead><tr>
+                        <th data-i18n="adminColMonth">月份</th>
+                        <th data-i18n="adminColQueries">查詢次數</th>
+                        <th data-i18n="adminColBlocked">攔截</th>
+                        <th data-i18n="adminColApiCalls">API 呼叫（估）</th>
+                        <th data-i18n="adminColCost">費用（估）</th>
+                    </tr></thead>
                     <tbody id="usageMonthBody"></tbody>
                 </table>
             </div>
-            <div class="section-title">使用者統計</div>
+            <div class="section-title" data-i18n="adminUsageUsers">使用者統計</div>
             <div class="card" style="overflow-x:auto">
                 <table class="log-table">
-                    <thead><tr><th>使用者</th><th>查詢次數</th><th>攔截</th></tr></thead>
+                    <thead><tr>
+                        <th data-i18n="adminColUser">使用者</th>
+                        <th data-i18n="adminColQueries">查詢次數</th>
+                        <th data-i18n="adminColBlocked">攔截</th>
+                    </tr></thead>
                     <tbody id="usageUserBody"></tbody>
                 </table>
             </div>
-            <div class="section-title">專案統計（Top 15）</div>
+            <div class="section-title" data-i18n="adminUsageProjects">專案統計（Top 15）</div>
             <div class="card" style="overflow-x:auto">
                 <table class="log-table">
-                    <thead><tr><th>專案</th><th>查詢次數</th></tr></thead>
+                    <thead><tr>
+                        <th data-i18n="adminColProject">專案</th>
+                        <th data-i18n="adminColQueries">查詢次數</th>
+                    </tr></thead>
                     <tbody id="usageProjectBody"></tbody>
                 </table>
             </div>
@@ -366,16 +385,16 @@
         <!-- 系統設定（Admin） -->
         <div class="tab-content" id="tab-settings">
             <div class="card">
-                <h3 style="margin-bottom:12px">AI 查詢模型</h3>
-                <p class="usage-note" style="margin-bottom:12px">
+                <h3 style="margin-bottom:12px" data-i18n="adminSettingsModel">AI 查詢模型</h3>
+                <p class="usage-note" style="margin-bottom:12px" data-i18n-html="adminSettingsNote">
                     變更後立即生效，無需重啟。分類器固定使用 Composer 2.5（快速）。
                     <br>Composer 2.5 適合日常查詢；Auto 依查詢次數漸進：第 1 次 Composer → 第 2 次 Sonnet → 第 3 次起 Opus（皆用最新版）。
                 </p>
-                <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px">主 Agent 模型</label>
+                <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px" data-i18n="adminMainAgent">主 Agent 模型</label>
                 <select id="modelSelect" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:white;margin-bottom:12px">
-                    <option value="">載入中...</option>
+                    <option value="" data-i18n="loading">載入中...</option>
                 </select>
-                <button class="add-btn" style="margin-bottom:0" onclick="saveModel()">儲存模型設定</button>
+                <button class="add-btn" style="margin-bottom:0" onclick="saveModel()" data-i18n="adminSaveModel">儲存模型設定</button>
                 <div id="modelSaveMsg" style="margin-top:10px;font-size:13px;color:#16a34a"></div>
             </div>
         </div>
@@ -385,20 +404,20 @@
 <!-- ===== 專案 Modal ===== -->
 <div class="overlay" id="projectOverlay">
     <div class="modal">
-        <h2 id="projectModalTitle">新增專案</h2>
-        <label>開發者名稱</label>
-        <input id="pf_developer" placeholder="例：jjenchi">
-        <label>專案名稱</label>
-        <input id="pf_name" placeholder="例：CNC">
-        <label>顯示名稱</label>
-        <input id="pf_display_name" placeholder="例：CNC 控制系統">
-        <label>Git URL</label>
+        <h2 id="projectModalTitle" data-i18n="adminAddProjectTitle">新增專案</h2>
+        <label data-i18n="adminDevName">開發者名稱</label>
+        <input id="pf_developer" data-i18n-placeholder="adminDevNamePh" placeholder="例：jjenchi">
+        <label data-i18n="adminProjectName">專案名稱</label>
+        <input id="pf_name" data-i18n-placeholder="adminProjectNamePh" placeholder="例：CNC">
+        <label data-i18n="adminDisplayName">顯示名稱</label>
+        <input id="pf_display_name" data-i18n-placeholder="adminDisplayNamePh" placeholder="例：CNC 控制系統">
+        <label data-i18n="adminGitUrl">Git URL</label>
         <input id="pf_git_url" placeholder="https://github.com/...">
-        <label>Git Token</label>
+        <label data-i18n="adminGitToken">Git Token</label>
         <input id="pf_git_token" placeholder="ghp_...">
         <div class="btn-row">
-            <button class="cancel-btn" onclick="closeModal('projectOverlay')">取消</button>
-            <button class="save-btn" id="projectSaveBtn" onclick="saveProject()">儲存</button>
+            <button class="cancel-btn" onclick="closeModal('projectOverlay')" data-i18n="cancel">取消</button>
+            <button class="save-btn" id="projectSaveBtn" onclick="saveProject()" data-i18n="save">儲存</button>
         </div>
     </div>
 </div>
@@ -406,22 +425,22 @@
 <!-- ===== 帳號 Modal ===== -->
 <div class="overlay" id="userOverlay">
     <div class="modal">
-        <h2>新增帳號</h2>
-        <label>帳號</label>
-        <input id="uf_username" placeholder="帳號" oninput="checkUserForm()">
-        <label>密碼</label>
-        <input id="uf_password" type="password" placeholder="密碼" oninput="checkUserForm()">
-        <label>Email</label>
-        <input id="uf_email" placeholder="用於忘記密碼時寄驗證碼" oninput="checkUserForm()">
-        <label>角色</label>
+        <h2 data-i18n="adminAddUserTitle">新增帳號</h2>
+        <label data-i18n="username">帳號</label>
+        <input id="uf_username" data-i18n-placeholder="username" placeholder="帳號" oninput="checkUserForm()">
+        <label data-i18n="password">密碼</label>
+        <input id="uf_password" type="password" data-i18n-placeholder="password" placeholder="密碼" oninput="checkUserForm()">
+        <label data-i18n="adminEmail">Email</label>
+        <input id="uf_email" data-i18n-placeholder="adminEmailPh" placeholder="用於忘記密碼時寄驗證碼" oninput="checkUserForm()">
+        <label data-i18n="adminRole">角色</label>
         <select id="uf_role" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;background:white;">
-            <option value="viewer">Viewer（僅查詢）</option>
-            <option value="editor">Editor（專案管理）</option>
-            <option value="admin">Admin（專案 + 帳號管理）</option>
+            <option value="viewer" data-i18n="adminRoleViewer">Viewer（僅查詢）</option>
+            <option value="editor" data-i18n="adminRoleEditor">Editor（專案管理）</option>
+            <option value="admin" data-i18n="adminRoleAdmin">Admin（專案 + 帳號管理）</option>
         </select>
         <div class="btn-row">
-            <button class="cancel-btn" onclick="closeModal('userOverlay')">取消</button>
-            <button class="save-btn" id="userSaveBtn" onclick="saveUser()" disabled>儲存</button>
+            <button class="cancel-btn" onclick="closeModal('userOverlay')" data-i18n="cancel">取消</button>
+            <button class="save-btn" id="userSaveBtn" onclick="saveUser()" disabled data-i18n="save">儲存</button>
         </div>
     </div>
 </div>
@@ -429,18 +448,23 @@
 <!-- ===== 回覆 Modal ===== -->
 <div class="overlay" id="answerOverlay">
     <div class="modal" style="max-width:640px;width:92%">
-        <h2>AI 回覆</h2>
+        <h2 data-i18n="adminAiReply">AI 回覆</h2>
         <div id="answerMeta" style="font-size:13px;color:#666;margin:12px 0;line-height:1.5"></div>
         <div class="answer-content" id="answerContent"></div>
         <div class="btn-row" style="margin-top:16px">
-            <button class="cancel-btn" onclick="closeModal('answerOverlay')">關閉</button>
+            <button class="cancel-btn" onclick="closeModal('answerOverlay')" data-i18n="close">關閉</button>
         </div>
     </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<script src="i18n.js"></script>
 <script>
+const { t, applyI18n } = I18N;
+applyI18n();
+document.title = t("adminTitle");
+
 const API = location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "http://localhost:8090"
     : `${location.protocol}//${location.host}`;
@@ -469,13 +493,30 @@ function authHeaders() {
 async function authFetch(url, opts = {}) {
     opts.headers = authHeaders();
     const res = await fetch(url, opts);
-    if (res.status === 401) { logout(); throw new Error("登入已過期"); }
+    if (res.status === 401) { logout(); throw new Error(t("errLoginExpired")); }
     return res;
 }
 
 // ===== 登入 / 登出 =====
 
+function clearAdminSession() {
+    token = null;
+    currentUsername = null;
+    currentRole = null;
+    localStorage.removeItem("cq_token");
+    localStorage.removeItem("cq_user");
+    localStorage.removeItem("cq_role");
+}
+
 function checkAuth() {
+    if (token && currentRole === "viewer") {
+        clearAdminSession();
+        document.getElementById("mainPage").style.display = "none";
+        document.getElementById("loginPage").style.display = "flex";
+        document.getElementById("loginError").textContent = t("errViewerNoAdmin");
+        showLogin();
+        return;
+    }
     if (token) {
         document.getElementById("loginPage").style.display = "none";
         document.getElementById("mainPage").style.display = "block";
@@ -502,16 +543,18 @@ async function doLogin() {
     const password = document.getElementById("loginPass").value;
     document.getElementById("loginError").textContent = "";
 
-    if (!username || !password) { document.getElementById("loginError").textContent = "請輸入帳號密碼"; return; }
+    if (!username || !password) { document.getElementById("loginError").textContent = t("errEnterUsernamePassword"); return; }
 
     try {
         const res = await fetch(`${API}/api/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ username, password, admin: true }),
         });
         const data = await res.json();
-        if (data.error) {
+        if (res.status === 403 || data.role === "viewer") {
+            document.getElementById("loginError").textContent = data.error || t("errViewerNoAdmin");
+        } else if (data.error) {
             document.getElementById("loginError").textContent = data.error;
         } else {
             token = data.token;
@@ -523,17 +566,12 @@ async function doLogin() {
             checkAuth();
         }
     } catch {
-        document.getElementById("loginError").textContent = "無法連線到伺服器";
+        document.getElementById("loginError").textContent = t("errNetwork");
     }
 }
 
 function logout() {
-    token = null;
-    currentUsername = null;
-    currentRole = null;
-    localStorage.removeItem("cq_token");
-    localStorage.removeItem("cq_user");
-    localStorage.removeItem("cq_role");
+    clearAdminSession();
     document.getElementById("mainPage").style.display = "none";
     document.getElementById("loginPage").style.display = "flex";
     showLogin();
@@ -556,7 +594,7 @@ function showForgot() {
 
 async function sendCode() {
     const username = document.getElementById("forgotUser").value.trim();
-    if (!username) { document.getElementById("forgotError").textContent = "請輸入帳號"; return; }
+    if (!username) { document.getElementById("forgotError").textContent = t("errEnterUsername"); return; }
     forgotUsername = username;
 
     try {
@@ -570,7 +608,7 @@ async function sendCode() {
         document.getElementById("resetError").textContent = "";
         document.getElementById("resetSuccess").textContent = "";
     } catch {
-        document.getElementById("forgotError").textContent = "無法連線到伺服器";
+        document.getElementById("forgotError").textContent = t("errNetwork");
     }
 }
 
@@ -580,7 +618,7 @@ async function doReset() {
     document.getElementById("resetError").textContent = "";
     document.getElementById("resetSuccess").textContent = "";
 
-    if (!code || !new_password) { document.getElementById("resetError").textContent = "請填寫所有欄位"; return; }
+    if (!code || !new_password) { document.getElementById("resetError").textContent = t("errFillAllFields"); return; }
 
     try {
         const res = await fetch(`${API}/api/auth/reset`, {
@@ -592,10 +630,10 @@ async function doReset() {
         if (data.error) {
             document.getElementById("resetError").textContent = data.error;
         } else {
-            document.getElementById("resetSuccess").textContent = "密碼已重設，請返回登入";
+            document.getElementById("resetSuccess").textContent = t("adminResetSuccess");
         }
     } catch {
-        document.getElementById("resetError").textContent = "無法連線到伺服器";
+        document.getElementById("resetError").textContent = t("errNetwork");
     }
 }
 
@@ -619,7 +657,7 @@ async function loadProjects() {
         const projects = await res.json();
         const list = document.getElementById("projectList");
         if (projects.length === 0) {
-            list.innerHTML = '<div class="empty">尚未新增任何專案</div>';
+            list.innerHTML = `<div class="empty">${t("adminNoProjects")}</div>`;
             return;
         }
         list.innerHTML = projects.map(p => `
@@ -627,8 +665,8 @@ async function loadProjects() {
                 <h3>${esc(p.display_name)}</h3>
                 <div class="meta">${esc(p.developer)} / ${esc(p.name)} — ${esc(p.git_url)}</div>
                 <div class="actions">
-                    <button onclick="openEditProject('${esc(p.developer)}','${esc(p.name)}')">編輯</button>
-                    <button class="delete-btn" onclick="deleteProject('${esc(p.developer)}','${esc(p.name)}')">刪除</button>
+                    <button onclick="openEditProject('${esc(p.developer)}','${esc(p.name)}')">${t("edit")}</button>
+                    <button class="delete-btn" onclick="deleteProject('${esc(p.developer)}','${esc(p.name)}')">${t("delete")}</button>
                 </div>
             </div>
         `).join("");
@@ -637,7 +675,7 @@ async function loadProjects() {
 
 function openProjectModal() {
     editProject = null;
-    document.getElementById("projectModalTitle").textContent = "新增專案";
+    document.getElementById("projectModalTitle").textContent = t("adminAddProjectTitle");
     document.getElementById("pf_developer").value = "";
     document.getElementById("pf_developer").disabled = false;
     document.getElementById("pf_name").value = "";
@@ -652,7 +690,7 @@ async function openEditProject(developer, name) {
     const res = await authFetch(`${API}/api/admin/projects/${developer}/${name}`);
     const p = await res.json();
     editProject = { developer, name };
-    document.getElementById("projectModalTitle").textContent = "編輯專案";
+    document.getElementById("projectModalTitle").textContent = t("adminEditProjectTitle");
     document.getElementById("pf_developer").value = p.developer;
     document.getElementById("pf_developer").disabled = true;
     document.getElementById("pf_name").value = p.name;
@@ -672,12 +710,12 @@ async function saveProject() {
         git_token: document.getElementById("pf_git_token").value.trim(),
     };
     if (!data.developer || !data.name || !data.git_url || !data.git_token) {
-        toast("請填寫所有必要欄位"); return;
+        toast(t("errFillRequired")); return;
     }
 
     const btn = document.getElementById("projectSaveBtn");
     btn.disabled = true;
-    btn.textContent = "儲存中...";
+    btn.textContent = t("saving");
 
     try {
         let res;
@@ -692,19 +730,19 @@ async function saveProject() {
         }
         const result = await res.json();
         if (result.error) { toast(result.error); }
-        else { toast(editProject ? "已更新" : "已新增"); closeModal("projectOverlay"); loadProjects(); }
-    } catch { toast("儲存失敗"); }
+        else { toast(editProject ? t("adminUpdated") : t("adminAdded")); closeModal("projectOverlay"); loadProjects(); }
+    } catch { toast(t("adminSaveFailed")); }
 
     btn.disabled = false;
-    btn.textContent = "儲存";
+    btn.textContent = t("save");
 }
 
 async function deleteProject(developer, name) {
-    if (!confirm(`確定要刪除 ${developer}/${name}？`)) return;
+    if (!confirm(t("adminConfirmDeleteProject", { path: `${developer}/${name}` }))) return;
     try {
         await authFetch(`${API}/api/admin/projects/${developer}/${name}`, { method: "DELETE" });
-        toast("已刪除"); loadProjects();
-    } catch { toast("刪除失敗"); }
+        toast(t("adminDeleted")); loadProjects();
+    } catch { toast(t("adminDeleteFailed")); }
 }
 
 // ===== 帳號管理 =====
@@ -715,7 +753,7 @@ async function loadUsers() {
         const users = await res.json();
         const list = document.getElementById("userList");
         if (users.length === 0) {
-            list.innerHTML = '<div class="empty">沒有帳號</div>';
+            list.innerHTML = `<div class="empty">${t("adminNoUsers")}</div>`;
             return;
         }
         const adminCount = users.filter(u => u.role === "admin").length;
@@ -728,8 +766,8 @@ async function loadUsers() {
                 <h3>${esc(u.username)}</h3>
                 <div class="meta">${esc(u.email)} — ${esc(u.role)}</div>
                 <div class="actions">
-                    <button onclick="resetUserPassword('${esc(u.username)}')">重設密碼</button>
-                    ${canDelete ? `<button class="delete-btn" onclick="deleteUser('${esc(u.username)}')">刪除</button>` : ""}
+                    <button onclick="resetUserPassword('${esc(u.username)}')">${t("adminResetPasswordBtn")}</button>
+                    ${canDelete ? `<button class="delete-btn" onclick="deleteUser('${esc(u.username)}')">${t("delete")}</button>` : ""}
                 </div>
             </div>`;
         }).join("");
@@ -759,18 +797,18 @@ async function saveUser() {
         email: document.getElementById("uf_email").value.trim(),
         role: document.getElementById("uf_role").value,
     };
-    if (!data.username || !data.password || !data.email) { toast("請填寫所有欄位"); return; }
+    if (!data.username || !data.password || !data.email) { toast(t("errFillAllFields")); return; }
 
     try {
         const res = await authFetch(`${API}/api/admin/users`, { method: "POST", body: JSON.stringify(data) });
         const result = await res.json();
         if (result.error) { toast(result.error); }
-        else { toast("帳號已新增"); closeModal("userOverlay"); loadUsers(); }
-    } catch { toast("新增失敗"); }
+        else { toast(t("adminUserAdded")); closeModal("userOverlay"); loadUsers(); }
+    } catch { toast(t("adminAddFailed")); }
 }
 
 async function resetUserPassword(username) {
-    const pw = prompt(`請輸入 ${username} 的新密碼：`);
+    const pw = prompt(t("adminResetPwdPrompt", { user: username }));
     if (!pw) return;
     try {
         const res = await authFetch(`${API}/api/admin/users/${username}/password`, {
@@ -778,18 +816,18 @@ async function resetUserPassword(username) {
         });
         const result = await res.json();
         if (result.error) toast(result.error);
-        else toast("密碼已重設");
-    } catch { toast("重設失敗"); }
+        else toast(t("adminPwdReset"));
+    } catch { toast(t("adminPwdResetFailed")); }
 }
 
 async function deleteUser(username) {
-    if (!confirm(`確定要刪除帳號 ${username}？`)) return;
+    if (!confirm(t("adminConfirmDeleteUser", { user: username }))) return;
     try {
         const res = await authFetch(`${API}/api/admin/users/${username}`, { method: "DELETE" });
         const result = await res.json();
         if (result.error) toast(result.error);
-        else { toast("帳號已刪除"); loadUsers(); }
-    } catch { toast("刪除失敗"); }
+        else { toast(t("adminUserDeleted")); loadUsers(); }
+    } catch { toast(t("adminDeleteFailed")); }
 }
 
 // ===== 操作紀錄 =====
@@ -801,15 +839,15 @@ async function loadLogs() {
         logCache = logs;
         const body = document.getElementById("logBody");
         if (logs.length === 0) {
-            body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">尚無紀錄</td></tr>';
+            body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">${t("noRecords")}</td></tr>`;
             return;
         }
         body.innerHTML = logs.map((l, i) => {
-            const t = new Date(l.time);
-            const ts = `${t.getMonth()+1}/${t.getDate()} ${t.getHours().toString().padStart(2,"0")}:${t.getMinutes().toString().padStart(2,"0")}`;
+            const d = new Date(l.time);
+            const ts = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}`;
             const answerCell = l.answer
-                ? `<button class="view-answer-btn" onclick="showAnswer(${i})">查看回覆</button>`
-                : '<span style="color:#ccc">—</span>';
+                ? `<button class="view-answer-btn" onclick="showAnswer(${i})">${t("adminViewReply")}</button>`
+                : `<span style="color:#ccc">${t("dash")}</span>`;
             return `<tr><td>${ts}</td><td>${esc(l.user)}</td><td>${esc(l.action)}</td><td>${esc(l.detail)}</td><td>${answerCell}</td></tr>`;
         }).join("");
     } catch {}
@@ -826,12 +864,12 @@ function showAnswer(i) {
 // ===== 清除紀錄 =====
 
 async function clearLogs() {
-    if (!confirm("確定要清除所有操作紀錄？此操作本身會被記錄。")) return;
+    if (!confirm(t("adminConfirmClearLogs"))) return;
     try {
         await authFetch(`${API}/api/admin/logs`, { method: "DELETE" });
-        toast("操作紀錄已清除");
+        toast(t("adminLogsCleared"));
         loadLogs();
-    } catch { toast("清除失敗"); }
+    } catch { toast(t("adminClearFailed")); }
 }
 
 // ===== 用量統計 =====
@@ -843,25 +881,25 @@ async function loadUsage() {
 
         const key = data.api_key || {};
         document.getElementById("usageNote").innerHTML =
-            `API Key：<strong>${esc(key.name || "—")}</strong>（${esc(key.email || "—")}）` +
-            ` · 模型：<strong>${esc(data.model || "—")}</strong><br>` +
+            `${t("adminUsageApiKey")}<strong>${esc(key.name || t("dash"))}</strong>（${esc(key.email || t("dash"))}）` +
+            ` · ${t("adminUsageModel")}<strong>${esc(data.model || t("dash"))}</strong><br>` +
             `${esc(data.pricing?.note || "")} ` +
-            `<a href="${esc(data.dashboard_url || "https://cursor.com/dashboard")}" target="_blank" rel="noopener">開啟 Cursor Dashboard</a><br>` +
-            `<span style="color:#888">費用為粗估（假設每次查詢約 ${(data.pricing?.estimated_input_tokens_per_query || 0).toLocaleString()} input tokens × $${data.pricing?.input_per_million_usd || 0.5}/M）</span>`;
+            `<a href="${esc(data.dashboard_url || "https://cursor.com/dashboard")}" target="_blank" rel="noopener">${t("adminUsageOpenDashboard")}</a><br>` +
+            `<span style="color:#888">${t("adminUsageCostNote", { tokens: (data.pricing?.estimated_input_tokens_per_query || 0).toLocaleString(), rate: data.pricing?.input_per_million_usd || 0.5 })}</span>`;
 
-        const t = data.totals || {};
+        const tot = data.totals || {};
         document.getElementById("usageStats").innerHTML = `
-            <div class="stat-card"><div class="label">總查詢次數</div><div class="value">${t.queries || 0}</div></div>
-            <div class="stat-card"><div class="label">API 呼叫（估）</div><div class="value">${t.api_calls_estimated || 0}</div><div class="sub">每次查詢 ≈ 2 次</div></div>
-            <div class="stat-card"><div class="label">平均耗時</div><div class="value">${t.avg_seconds || 0}s</div></div>
-            <div class="stat-card"><div class="label">攔截次數</div><div class="value">${t.blocked || 0}</div></div>
-            <div class="stat-card"><div class="label">費用粗估（USD）</div><div class="value">$${(t.estimated_cost_usd || 0).toFixed(2)}</div><div class="sub">非正式帳單</div></div>
+            <div class="stat-card"><div class="label">${t("adminStatTotalQueries")}</div><div class="value">${tot.queries || 0}</div></div>
+            <div class="stat-card"><div class="label">${t("adminStatApiCalls")}</div><div class="value">${tot.api_calls_estimated || 0}</div><div class="sub">${t("adminStatApiCallsSub")}</div></div>
+            <div class="stat-card"><div class="label">${t("adminStatAvgTime")}</div><div class="value">${tot.avg_seconds || 0}s</div></div>
+            <div class="stat-card"><div class="label">${t("adminStatBlocked")}</div><div class="value">${tot.blocked || 0}</div></div>
+            <div class="stat-card"><div class="label">${t("adminStatCost")}</div><div class="value">$${(tot.estimated_cost_usd || 0).toFixed(2)}</div><div class="sub">${t("adminStatCostSub")}</div></div>
         `;
 
         const monthBody = document.getElementById("usageMonthBody");
         const months = data.by_month_list || [];
         monthBody.innerHTML = months.length === 0
-            ? '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">尚無資料</td></tr>'
+            ? `<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">${t("noData")}</td></tr>`
             : months.map(m => `<tr>
                 <td>${esc(m.month)}</td>
                 <td>${m.queries}</td>
@@ -873,16 +911,16 @@ async function loadUsage() {
         const userBody = document.getElementById("usageUserBody");
         const users = data.by_user_list || [];
         userBody.innerHTML = users.length === 0
-            ? '<tr><td colspan="3" style="text-align:center;color:#888;padding:20px">尚無資料</td></tr>'
+            ? `<tr><td colspan="3" style="text-align:center;color:#888;padding:20px">${t("noData")}</td></tr>`
             : users.map(u => `<tr><td>${esc(u.user)}</td><td>${u.queries}</td><td>${u.blocked}</td></tr>`).join("");
 
         const projectBody = document.getElementById("usageProjectBody");
         const projects = data.by_project_list || [];
         projectBody.innerHTML = projects.length === 0
-            ? '<tr><td colspan="2" style="text-align:center;color:#888;padding:20px">尚無資料</td></tr>'
+            ? `<tr><td colspan="2" style="text-align:center;color:#888;padding:20px">${t("noData")}</td></tr>`
             : projects.map(p => `<tr><td>${esc(p.project)}</td><td>${p.queries}</td></tr>`).join("");
     } catch {
-        document.getElementById("usageNote").textContent = "無法載入用量統計";
+        document.getElementById("usageNote").textContent = t("adminUsageLoadFailed");
     }
 }
 
@@ -900,7 +938,7 @@ async function loadSettings() {
             `<option value="${esc(m.id)}"${m.id === data.ai_model ? " selected" : ""}>${esc(m.label || m.id)}</option>`
         ).join("");
     } catch {
-        document.getElementById("modelSelect").innerHTML = '<option value="">無法載入模型清單</option>';
+        document.getElementById("modelSelect").innerHTML = `<option value="">${t("adminModelLoadFailed")}</option>`;
     }
 }
 
@@ -909,7 +947,7 @@ async function saveModel() {
     msg.style.color = "#16a34a";
     msg.textContent = "";
     const model = document.getElementById("modelSelect").value;
-    if (!model) { msg.style.color = "#dc2626"; msg.textContent = "請選擇模型"; return; }
+    if (!model) { msg.style.color = "#dc2626"; msg.textContent = t("adminSelectModel"); return; }
     try {
         const res = await authFetch(`${API}/api/admin/settings/model`, {
             method: "PUT",
@@ -921,12 +959,12 @@ async function saveModel() {
             msg.style.color = "#dc2626";
             msg.textContent = data.error;
         } else {
-            msg.textContent = `已儲存，目前模型：${data.ai_model}`;
-            toast("AI 模型已更新");
+            msg.textContent = t("adminModelSaved", { model: data.ai_model });
+            toast(t("adminModelUpdated"));
         }
     } catch {
         msg.style.color = "#dc2626";
-        msg.textContent = "儲存失敗";
+        msg.textContent = t("adminModelSaveFailed");
     }
 }
 

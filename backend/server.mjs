@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { execSync } from "child_process";
 import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync } from "fs";
-import { join, dirname } from "path";
+import { join, dirname, resolve, relative, extname, basename } from "path";
 import { config } from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -192,7 +192,11 @@ const SYSTEM_PROMPT = `你是一個專業的客服助手，協助客服和業務
 10. 引用內容中的中文時，必須完全照搬原文，不要自行修改或猜測用字
 11. 直接給答案，不要描述你正在做什麼（不要說「正在搜尋」「正在確認」「正在釐清」等）
 12. 回答要具體完整：列出所有相關的設定項目名稱、選項名稱、欄位名稱，以及它們各自的功能說明
-13. 不要重複，同一個資訊只說一次`;
+13. 不要重複，同一個資訊只說一次
+14. 若有相關畫面截圖能幫助理解答案，請在文字答案最後另起一行附上（最多 3 張）：ATTACH_IMAGE:相對路徑
+   截圖放在各子專案的 doc/UI 及其子資料夾（例如 TL-DG/doc/UI/login.png 或 TL-DG/doc/UI/設定/深度控制.png）。請遞迴搜尋 doc/UI 底下所有 .png/.jpg/.jpeg/.webp/.gif，不要只看 doc/UI 這一層。
+   例如：ATTACH_IMAGE:doc/UI/設定/深度控制.png
+   路徑必須是你實際找到的檔案，不要捏造。無關畫面不要附。`;
 
 function getModelSelection(sessionKey) {
   const modelId = getResolvedModelId(sessionKey);
@@ -236,6 +240,70 @@ function sanitizeAnswer(text) {
   cleaned = cleaned.replace(/(\[此行內容已被安全過濾\]\n?){3,}/g, "[部分內容因包含程式碼已被過濾]\n");
   cleaned = cleaned.replace(/(\[程式碼內容已隱藏\]\n?){2,}/g, "[程式碼內容已隱藏]\n");
   return cleaned;
+}
+
+const IMAGE_EXT_MIME = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+};
+const MAX_ANSWER_IMAGES = 3;
+const MAX_ANSWER_IMAGE_BYTES = 2 * 1024 * 1024;
+
+function extractAnswerImages(rawAnswer, agentCwd) {
+  const paths = [];
+  const re = /^\s*ATTACH_IMAGE:\s*(.+?)\s*$/gim;
+  let m;
+  while ((m = re.exec(rawAnswer)) !== null) {
+    const p = m[1].replace(/^["']|["']$/g, "").trim();
+    if (p && !paths.includes(p)) paths.push(p);
+  }
+  // 也接受常見 markdown 圖片語法
+  const mdRe = /!\[[^\]]*\]\(([^)\s]+)\)/g;
+  while ((m = mdRe.exec(rawAnswer)) !== null) {
+    const p = m[1].trim();
+    if (p && !/^https?:\/\//i.test(p) && !paths.includes(p)) paths.push(p);
+  }
+
+  const images = [];
+  const base = resolve(agentCwd);
+  for (const rel of paths.slice(0, MAX_ANSWER_IMAGES * 2)) {
+    if (images.length >= MAX_ANSWER_IMAGES) break;
+    const ext = extname(rel).toLowerCase();
+    const mime = IMAGE_EXT_MIME[ext];
+    if (!mime) continue;
+    const full = resolve(base, rel);
+    const relSafe = relative(base, full);
+    if (!relSafe || relSafe.startsWith("..") || relSafe.includes("..")) continue;
+    if (!existsSync(full)) {
+      console.log(`[IMAGE] 找不到附圖: ${rel}`);
+      continue;
+    }
+    try {
+      const buf = readFileSync(full);
+      if (buf.length > MAX_ANSWER_IMAGE_BYTES) {
+        console.log(`[IMAGE] 附圖過大略過: ${rel} (${buf.length} bytes)`);
+        continue;
+      }
+      images.push({
+        name: basename(full),
+        mimeType: mime,
+        data: buf.toString("base64"),
+      });
+      console.log(`[IMAGE] 附上專案圖片: ${relSafe}`);
+    } catch (err) {
+      console.log(`[IMAGE] 讀取失敗: ${rel}`, err.message);
+    }
+  }
+
+  let text = rawAnswer
+    .replace(/^\s*ATTACH_IMAGE:\s*.+$/gim, "")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { text, images };
 }
 
 // --- 資料讀寫 ---
@@ -425,32 +493,97 @@ const transporter = nodemailer.createTransport({
 
 const resetCodes = {};
 
-// --- Cursor Agent（每次查詢用 Agent.prompt 一次性，避免 session 認證失效）---
+// --- Cursor Agent（每次查詢用一次性 Agent，避免 session 認證失效）---
 
-async function runOneShotQuery(agentCwd, prompt, sessionKey) {
+const MAX_ATTACHMENTS = 3;
+const MAX_TEXT_CHARS = 80_000;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 解碼後約 4MB
+const ALLOWED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+function normalizeAttachments(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) return { texts: [], images: [], names: [] };
+  const texts = [];
+  const images = [];
+  const names = [];
+  for (const item of raw.slice(0, MAX_ATTACHMENTS)) {
+    if (!item || typeof item !== "object") continue;
+    const name = String(item.name || "attachment").slice(0, 120);
+    const kind = item.kind === "image" ? "image" : "text";
+    if (kind === "text") {
+      const content = String(item.content || "").slice(0, MAX_TEXT_CHARS);
+      if (!content.trim()) continue;
+      texts.push({ name, content });
+      names.push(name);
+    } else {
+      const mimeType = String(item.mimeType || "image/jpeg").toLowerCase();
+      if (!ALLOWED_IMAGE_MIME.has(mimeType)) continue;
+      let data = String(item.content || "").replace(/^data:[^;]+;base64,/, "");
+      if (!data) continue;
+      const approxBytes = Math.floor(data.length * 0.75);
+      if (approxBytes > MAX_IMAGE_BYTES) continue;
+      images.push({ name, data, mimeType });
+      names.push(name);
+    }
+  }
+  return { texts, images, names };
+}
+
+function buildAttachmentPrompt(texts) {
+  if (!texts.length) return "";
+  let block = "\n\n使用者附上的文字檔內容（請一併參考）：\n";
+  for (const f of texts) {
+    block += `\n----- 檔案：${f.name} -----\n${f.content}\n----- 結束：${f.name} -----\n`;
+  }
+  return block;
+}
+
+async function runOneShotQuery(agentCwd, prompt, sessionKey, images = []) {
   const modelId = getResolvedModelId(sessionKey);
   if (ACTIVE_MODEL === "auto") {
     const count = getAutoQueryCount(sessionKey);
     console.log(`[MODEL] auto 第 ${count + 1} 次查詢 → ${getAutoTier(count)} (${modelId})`);
   }
-  const result = await Agent.prompt(prompt, {
+  const model = getModelSelection(sessionKey);
+  const opts = {
     apiKey: CURSOR_API_KEY,
-    model: getModelSelection(sessionKey),
+    model,
     local: { cwd: agentCwd, settingSources: [] },
-  });
-  return {
-    answer: result.result || "",
-    runResult: result,
-    eventTypes: new Set([result.status]),
-    thinking: "",
   };
+
+  if (!images.length) {
+    const result = await Agent.prompt(prompt, opts);
+    return {
+      answer: result.result || "",
+      runResult: result,
+      eventTypes: new Set([result.status]),
+      thinking: "",
+    };
+  }
+
+  console.log(`[MODEL] 附圖 ${images.length} 張，改用 Agent.create + send`);
+  const agent = await Agent.create(opts);
+  try {
+    const run = await agent.send({
+      text: prompt,
+      images: images.map((img) => ({ data: img.data, mimeType: img.mimeType })),
+    });
+    const result = await run.wait();
+    return {
+      answer: result.result || run.result || "",
+      runResult: result,
+      eventTypes: new Set([result.status || run.status]),
+      thinking: "",
+    };
+  } finally {
+    try { agent.close(); } catch {}
+  }
 }
 
 // --- Express ---
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "12mb" }));
 
 // --- Rate Limiting ---
 
@@ -495,12 +628,16 @@ async function classifyQuery(question) {
 // ========== 查詢 API（需登入）==========
 
 app.post("/api/query", requireAuth, async (req, res) => {
-  const { question, session_id = "default", developer, name, subfolder } = req.body;
+  const { question, session_id = "default", developer, name, subfolder, attachments } = req.body;
+  const { texts: textAtts, images: imageAtts, names: attachNames } = normalizeAttachments(attachments);
 
-  if (!question?.trim()) return res.status(400).json({ error: "請提供問題" });
+  const questionText = (question || "").trim()
+    || (attachNames.length ? "請根據我附上的檔案／圖片，說明與本專案相關的資訊。" : "");
+
+  if (!questionText) return res.status(400).json({ error: "請提供問題或附檔" });
   if (!developer || !name) return res.status(400).json({ error: "請選擇專案" });
 
-  const q = question.toLowerCase();
+  const q = questionText.toLowerCase();
   const codeRequestPatterns = [
     /給我.*(程式碼|原始碼|source\s*code|代碼)/,
     /顯示.*(程式碼|原始碼|source\s*code|代碼)/,
@@ -540,16 +677,16 @@ app.post("/api/query", requireAuth, async (req, res) => {
     /查.*(程式|code)/i,
     /讀.*(程式|code)/i,
   ];
-  if (codeRequestPatterns.some(p => p.test(question) || p.test(q))) {
-    console.log(`[BLOCKED] 疑似程式碼請求被攔截: "${question}" (user: ${req.user.username})`);
+  if (codeRequestPatterns.some(p => p.test(questionText) || p.test(q))) {
+    console.log(`[BLOCKED] 疑似程式碼請求被攔截: "${questionText}" (user: ${req.user.username})`);
     const blockedAnswer = "此系統禁止查詢程式碼相關內容。\n\n您可以詢問功能面的問題，例如：\n1. 這個功能做了什麼？\n2. 某個頁面有哪些欄位？\n3. 某個流程的步驟是什麼？";
-    writeLog(req.user.username, "查詢被攔截（Regex）", question, { answer: blockedAnswer });
+    writeLog(req.user.username, "查詢被攔截（Regex）", questionText, { answer: blockedAnswer });
     return res.json({ answer: blockedAnswer });
   }
 
   // Rate limit check
   if (!checkRateLimit(req.user.username)) {
-    console.log(`[RATE-LIMITED] ${req.user.username}: "${question}"`);
+    console.log(`[RATE-LIMITED] ${req.user.username}: "${questionText}"`);
     return res.status(429).json({ error: "查詢太頻繁，請稍後再試（每分鐘最多 10 次）" });
   }
 
@@ -560,14 +697,14 @@ app.post("/api/query", requireAuth, async (req, res) => {
   // 安全分類與 git pull 並行，減少等待時間
   const prepStart = Date.now();
   const [aiBlocked] = await Promise.all([
-    classifyQuery(question),
+    classifyQuery(questionText),
     Promise.resolve().then(() => cloneOrPull(project)),
   ]);
   const prepMs = Date.now() - prepStart;
   if (aiBlocked) {
-    console.log(`[AI-BLOCKED] 安全分類器攔截: "${question}" (user: ${req.user.username})`);
+    console.log(`[AI-BLOCKED] 安全分類器攔截: "${questionText}" (user: ${req.user.username})`);
     const blockedAnswer = "此問題已被安全系統攔截。\n\n您可以詢問功能面的問題，例如：\n1. 這個功能做了什麼？\n2. 某個頁面有哪些欄位？\n3. 某個流程的步驟是什麼？";
-    writeLog(req.user.username, "查詢被攔截（AI）", question, { answer: blockedAnswer });
+    writeLog(req.user.username, "查詢被攔截（AI）", questionText, { answer: blockedAnswer });
     return res.json({ answer: blockedAnswer });
   }
 
@@ -575,7 +712,8 @@ app.post("/api/query", requireAuth, async (req, res) => {
   await new Promise((r) => setTimeout(r, 800));
 
   const projectKey = `${developer}/${name}`;
-  console.log(`\n[LOG] 收到問題: "${question}" (專案: ${projectKey}, 子資料夾: ${subfolder || "全部"}, session: ${session_id})`);
+  const attachNote = attachNames.length ? ` 附檔:[${attachNames.join(", ")}]` : "";
+  console.log(`\n[LOG] 收到問題: "${questionText}" (專案: ${projectKey}, 子資料夾: ${subfolder || "全部"}, session: ${session_id}${attachNote})`);
   const start = Date.now();
 
   try {
@@ -586,18 +724,24 @@ app.post("/api/query", requireAuth, async (req, res) => {
     const subfolderRule = subfolder
       ? `\n\n重要限制：你只能搜尋「${subfolder}」這個子資料夾內的檔案。絕對不要搜尋上層目錄或其他資料夾。如果在「${subfolder}」內找不到相關資訊，直接回答「在此子專案中沒有找到相關資訊」，不要去其他地方找。`
       : "";
-    const prompt = `${SYSTEM_PROMPT}${subfolderRule}\n\n使用者的問題：${question}`;
+    const uiDocHint = subfolder
+      ? `\n\n畫面截圖位置：優先在「${subfolder}/doc/UI」及其子目錄遞迴搜尋圖片（例如 doc/UI/xxx.png 或 doc/UI/某目錄/xxx.png）。找到相關截圖時，在答案最後加上完整相對路徑，如 ATTACH_IMAGE:doc/UI/某目錄/檔名.png`
+      : `\n\n畫面截圖位置：各 TL-xxx 子專案的截圖在 TL-xxx/doc/UI 及其子目錄（例如 TL-DG/doc/UI/dir/xxx.png）。請遞迴搜尋 **/doc/UI/** 內的圖片。找到相關截圖時，在答案最後加上完整相對路徑，如 ATTACH_IMAGE:TL-DG/doc/UI/dir/檔名.png`;
+    const imageHint = imageAtts.length
+      ? `\n\n使用者附上了 ${imageAtts.length} 張圖片（已隨訊息傳送）。請根據圖片內容結合專案資訊回答，用非技術語言說明。`
+      : "";
+    const prompt = `${SYSTEM_PROMPT}${subfolderRule}${uiDocHint}${imageHint}${buildAttachmentPrompt(textAtts)}\n\n使用者的問題：${questionText}`;
 
-    console.log(`[LOG] 送出問題給 Cursor Agent... (cwd: ${subfolderLabel})`);
+    console.log(`[LOG] 送出問題給 Cursor Agent... (cwd: ${subfolderLabel}, textAtts=${textAtts.length}, images=${imageAtts.length})`);
     const runStart = Date.now();
     const autoKey = session_id || req.user.username;
     const queryModel = getResolvedModelId(autoKey);
-    let { answer, runResult, eventTypes, thinking } = await runOneShotQuery(agentCwd, prompt, autoKey);
+    let { answer, runResult, eventTypes, thinking } = await runOneShotQuery(agentCwd, prompt, autoKey, imageAtts);
 
     if (runResult.status === "error") {
       console.error("[RUN ERROR]", runResult.id, "— 2 秒後重試");
       await new Promise((r) => setTimeout(r, 2000));
-      ({ answer, runResult, eventTypes, thinking } = await runOneShotQuery(agentCwd, prompt, autoKey));
+      ({ answer, runResult, eventTypes, thinking } = await runOneShotQuery(agentCwd, prompt, autoKey, imageAtts));
     }
 
     if (ACTIVE_MODEL === "auto") incrementAutoQueryCount(autoKey);
@@ -614,16 +758,24 @@ app.post("/api/query", requireAuth, async (req, res) => {
     if (!answer) answer = "目前在程式碼中沒有找到相關資訊。";
 
     console.log("[RAW ANSWER]", answer);
-    answer = sanitizeAnswer(answer);
+    const extracted = extractAnswerImages(answer, agentCwd);
+    answer = sanitizeAnswer(extracted.text);
     console.log("[SANITIZED ANSWER]", answer);
+    if (extracted.images.length) console.log(`[IMAGE] 回傳 ${extracted.images.length} 張圖`);
 
     if (!answer.trim()) answer = "目前在程式碼中沒有找到相關資訊。";
 
     const elapsed = ((Date.now() - start) / 1000).toFixed(2);
     console.log(`[TIMING] prep=${prepMs}ms run=${runMs}ms total=${elapsed}s`);
     console.log(`[LOG] 回答完成 (${elapsed}s)`);
-    writeLog(req.user.username, "查詢", `[${projectKey}${subfolder ? '/' + subfolder : ''}] ${question} (${elapsed}s) [${queryModel}]`, { answer, model: queryModel });
-    res.json({ answer });
+    const imgNote = extracted.images.length ? ` 回圖:${extracted.images.length}` : "";
+    writeLog(
+      req.user.username,
+      "查詢",
+      `[${projectKey}${subfolder ? "/" + subfolder : ""}] ${questionText}${attachNote}${imgNote} (${elapsed}s) [${queryModel}]`,
+      { answer, model: queryModel, attachments: attachNames, reply_images: extracted.images.map(i => i.name) }
+    );
+    res.json({ answer, images: extracted.images });
   } catch (err) {
     console.error("[ERROR]", err.message);
 
@@ -674,6 +826,10 @@ app.post("/api/auth/login", (req, res) => {
   const user = users.find((u) => u.username === username);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: "帳號或密碼錯誤" });
+  }
+
+  if (req.body.admin && user.role === "viewer") {
+    return res.status(403).json({ error: "此帳號僅限查詢，無法使用管理功能" });
   }
 
   const token = jwt.sign({ username: user.username, role: user.role }, JWT_SECRET, { expiresIn: "24h" });
