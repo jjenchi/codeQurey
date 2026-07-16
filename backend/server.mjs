@@ -21,10 +21,11 @@ if (CURSOR_API_KEY) Cursor.configure({ apiKey: CURSOR_API_KEY });
 const ROOT_DIR = join(decodeURIComponent(dirname(new URL(import.meta.url).pathname)), "..");
 const SETTINGS_FILE = join(ROOT_DIR, "settings.json");
 
-// 主 Agent 模型（預設 composer-2.5；auto = 第1次 Composer → 第2次 Sonnet → 第3次起 Opus）
-const DEFAULT_MODEL = "composer-2.5";
+// 主 Agent 模型（預設 grok = 永遠用最新 Grok；auto = Composer→Sonnet→Opus）
+const DEFAULT_MODEL = "grok";
 let ACTIVE_MODEL = DEFAULT_MODEL;
 let latestModels = {
+  grok: "grok-4.5",
   composer: "composer-2.5",
   sonnet: "claude-sonnet-4-6",
   opus: "claude-opus-4-8",
@@ -48,6 +49,7 @@ function compareModelIds(a, b) {
 
 function findLatestByFamily(models, family) {
   const filters = {
+    grok: m => /grok/i.test(m.id),
     composer: m => /^composer/i.test(m.id),
     sonnet: m => /sonnet/i.test(m.id),
     opus: m => /opus/i.test(m.id) && !/sonnet/i.test(m.id),
@@ -61,17 +63,53 @@ async function refreshModelCache() {
   try {
     const models = await Cursor.models.list();
     latestModels = {
+      grok: findLatestByFamily(models, "grok") || latestModels.grok,
       composer: findLatestByFamily(models, "composer") || latestModels.composer,
       sonnet: findLatestByFamily(models, "sonnet") || latestModels.sonnet,
       opus: findLatestByFamily(models, "opus") || latestModels.opus,
     };
-    console.log(`[MODEL] 最新版本：composer=${latestModels.composer} sonnet=${latestModels.sonnet} opus=${latestModels.opus}`);
+    console.log(`[MODEL] 最新版本：grok=${latestModels.grok} composer=${latestModels.composer} sonnet=${latestModels.sonnet} opus=${latestModels.opus}`);
   } catch (err) {
     console.warn("[MODEL] ⚠️ 無法更新模型清單：", err.message);
   }
 }
 
 const autoQueryCounts = new Map();
+const conversationHistory = new Map(); // key → [{ role, text }]
+const MAX_HISTORY_TURNS = 6; // 最多保留 6 輪問答
+const MAX_HISTORY_Q_CHARS = 800;
+const MAX_HISTORY_A_CHARS = 2500;
+
+function conversationKey(username, sessionId, developer, name, subfolder) {
+  return `${username}|${sessionId}|${developer}/${name}|${subfolder || ""}`;
+}
+
+function getConversationHistory(key) {
+  return conversationHistory.get(key) || [];
+}
+
+function appendConversationTurn(key, question, answer) {
+  const turns = getConversationHistory(key);
+  turns.push({
+    question: String(question || "").slice(0, MAX_HISTORY_Q_CHARS),
+    answer: String(answer || "").slice(0, MAX_HISTORY_A_CHARS),
+  });
+  while (turns.length > MAX_HISTORY_TURNS) turns.shift();
+  if (conversationHistory.size >= 5000) {
+    const first = conversationHistory.keys().next().value;
+    conversationHistory.delete(first);
+  }
+  conversationHistory.set(key, turns);
+}
+
+function buildHistoryPrompt(turns) {
+  if (!turns.length) return "";
+  let block = "\n\n以下是同一對話中稍早的問答（供接續理解，不要重複整段覆述；若與目前問題無關可忽略）：\n";
+  turns.forEach((t, i) => {
+    block += `\n【第 ${i + 1} 輪】\n使用者：${t.question}\n助手：${t.answer}\n`;
+  });
+  return block;
+}
 
 function getAutoQueryCount(sessionKey) {
   return autoQueryCounts.get(sessionKey) || 0;
@@ -92,6 +130,7 @@ function getAutoTier(count) {
 }
 
 function getResolvedModelId(sessionKey) {
+  if (ACTIVE_MODEL === "grok") return latestModels.grok;
   if (ACTIVE_MODEL !== "auto") return ACTIVE_MODEL;
   const tier = getAutoTier(getAutoQueryCount(sessionKey));
   return latestModels[tier];
@@ -99,7 +138,12 @@ function getResolvedModelId(sessionKey) {
 
 function loadSettings() {
   if (!existsSync(SETTINGS_FILE)) return {};
-  return JSON.parse(readFileSync(SETTINGS_FILE, "utf-8"));
+  try {
+    return JSON.parse(readFileSync(SETTINGS_FILE, "utf-8"));
+  } catch (err) {
+    console.warn("[SETTINGS] 讀取失敗，使用預設：", err.message);
+    return {};
+  }
 }
 
 function saveSettings(data) {
@@ -113,7 +157,7 @@ function getConfiguredModel() {
 }
 
 async function validateAndSetModel(requested) {
-  if (requested === "auto" || requested === "composer-2.5") {
+  if (requested === "auto" || requested === "grok" || requested === "composer-2.5") {
     ACTIVE_MODEL = requested;
     return { ok: true, model: ACTIVE_MODEL };
   }
@@ -140,6 +184,8 @@ async function resolveActiveModel() {
   await refreshModelCache();
   if (ACTIVE_MODEL === "auto") {
     console.log(`[MODEL] auto 模式：第1次 ${latestModels.composer} → 第2次 ${latestModels.sonnet} → 第3次起 ${latestModels.opus}`);
+  } else if (ACTIVE_MODEL === "grok") {
+    console.log(`[MODEL] 主 Agent 使用 Grok 最新版：${latestModels.grok}`);
   } else {
     console.log(`[MODEL] 主 Agent 使用 ${ACTIVE_MODEL}`);
   }
@@ -147,7 +193,8 @@ async function resolveActiveModel() {
 
 async function listAvailableModels() {
   const extras = [
-    { id: "composer-2.5", label: "Composer 2.5（快速，推薦）" },
+    { id: "grok", label: `Grok 最新版（目前 ${latestModels.grok}，預設）` },
+    { id: "composer-2.5", label: "Composer 2.5（快速）" },
     { id: "auto", label: "Auto（第1次 Composer → 第2次 Sonnet → 第3次起 Opus）" },
   ];
   const ids = new Set(extras.map(m => m.id));
@@ -730,9 +777,12 @@ app.post("/api/query", requireAuth, async (req, res) => {
     const imageHint = imageAtts.length
       ? `\n\n使用者附上了 ${imageAtts.length} 張圖片（已隨訊息傳送）。請根據圖片內容結合專案資訊回答，用非技術語言說明。`
       : "";
-    const prompt = `${SYSTEM_PROMPT}${subfolderRule}${uiDocHint}${imageHint}${buildAttachmentPrompt(textAtts)}\n\n使用者的問題：${questionText}`;
+    const historyKey = conversationKey(req.user.username, session_id, developer, name, subfolder);
+    const priorTurns = getConversationHistory(historyKey);
+    const historyBlock = buildHistoryPrompt(priorTurns);
+    const prompt = `${SYSTEM_PROMPT}${subfolderRule}${uiDocHint}${imageHint}${buildAttachmentPrompt(textAtts)}${historyBlock}\n\n使用者的問題：${questionText}`;
 
-    console.log(`[LOG] 送出問題給 Cursor Agent... (cwd: ${subfolderLabel}, textAtts=${textAtts.length}, images=${imageAtts.length})`);
+    console.log(`[LOG] 送出問題給 Cursor Agent... (cwd: ${subfolderLabel}, textAtts=${textAtts.length}, images=${imageAtts.length}, history=${priorTurns.length})`);
     const runStart = Date.now();
     const autoKey = session_id || req.user.username;
     const queryModel = getResolvedModelId(autoKey);
@@ -775,6 +825,7 @@ app.post("/api/query", requireAuth, async (req, res) => {
       `[${projectKey}${subfolder ? "/" + subfolder : ""}] ${questionText}${attachNote}${imgNote} (${elapsed}s) [${queryModel}]`,
       { answer, model: queryModel, attachments: attachNames, reply_images: extracted.images.map(i => i.name) }
     );
+    appendConversationTurn(historyKey, questionText, answer);
     res.json({ answer, images: extracted.images });
   } catch (err) {
     console.error("[ERROR]", err.message);
